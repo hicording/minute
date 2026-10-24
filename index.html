@@ -27,7 +27,7 @@ header small{color:var(--mu);display:block;font-size:12px}
 .sys{align-self:center;color:var(--mu);font-size:12px}
 form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 .tag{color:#fff;border-radius:6px;font-size:10px;padding:1px 6px;margin-left:4px;font-weight:700}
-.admin{background:#f5a623}.sub{background:#2fb344}
+.admin{background:#f5a623}.sub{background:#2fb344}.crown{margin-left:4px;font-size:13px}form button{flex:none;width:48px;padding:0;display:grid;place-items:center}
 .err{color:#e5484d;font-size:13px;min-height:16px}
 #us{display:none;padding:8px 12px;border-bottom:1px solid var(--bd);gap:6px;flex-direction:column}
 #us .u{display:flex;justify-content:space-between;align-items:center;font-size:14px}
@@ -42,9 +42,14 @@ const SUPABASE_KEY="sb_publishable_kCn-7ZjtLnMQ0WJwXdwZcQ_Dct1mqvr";
 const $=s=>document.querySelector(s),app=$("#app"),TTL=60000;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const st={get:k=>{try{return localStorage.getItem(k)||""}catch{return""}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
-const tag=r=>r==="admin"?'<span class="tag admin">관리자</span>':r==="sub"?'<span class="tag sub">부관리자</span>':"";
+const tag=r=>r==="admin"?'<span class="crown" title="관리자">👑</span>':r==="sub"?'<span class="tag sub">부관리자</span>':"";
 let sb,uid,code,msgs=[],members={},online=new Set(),ch=null,t1=null,t2=null,t3=null,off=0;
 const myRole=()=>(members[uid]||{}).role||"user";
+function dev(){let d=st.get("m_dev");
+  if(!d){const m=document.cookie.match(/(?:^|; )m_dev=([^;]+)/);d=m?m[1]:""}
+  if(!d)d=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now());
+  st.set("m_dev",d);try{document.cookie="m_dev="+d+"; max-age=315360000; path=/; SameSite=Lax"}catch{}
+  return d}
 
 function login(msg){
   app.innerHTML=`<div class="center"><h1>Min<span>ute</span></h1><p class="s">보낸 메시지는 1분 뒤 사라져요. 방을 만든 사람이 관리자예요.</p>
@@ -59,9 +64,9 @@ function login(msg){
       if(!uid){const{data:{session}}=await sb.auth.getSession();
         if(!session){const{error}=await sb.auth.signInAnonymously();if(error)throw error}
         uid=(await sb.auth.getUser()).data.user.id}
-      const{data,error}=await sb.rpc(fn,{p_code:c,p_name:n});
+      const{data,error}=await sb.rpc(fn,{p_code:c,p_name:n,p_device:dev()});
       if(error)throw new Error(/duplicate/i.test(error.message)?'이미 있는 코드예요':error.message);
-      if(!data)throw new Error(fn==='create_room'?'이미 있는 코드이거나 입력이 올바르지 않아요 (코드는 영문/숫자 4~12자)':'없는 코드예요');
+      if(!data)throw new Error(fn==='create_room'?'이미 있는 코드이거나 입력이 올바르지 않아요 (코드는 영문/숫자 4~12자)':'없는 코드이거나 입장할 수 없어요');
       await enter(c);
     }catch(e){$("#er").textContent=e.message||"실패했어요"}
   };
@@ -73,7 +78,7 @@ async function enter(c){
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
   <div class="row"><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="out">나가기</button></div></header>
   <div id="us"></div><div id="list"></div>
-  <form id="f"><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button>전송</button></form>`;
+  <form id="f"><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
   $("#out").onclick=leave;
   $("#ub").onclick=()=>{const u=$("#us");u.style.display=u.style.display==="flex"?"none":"flex"};
   $("#clr").onclick=()=>confirm("모든 메시지를 삭제할까요?")&&sb.rpc("clear_room",{p_code:code});
@@ -97,7 +102,7 @@ async function enter(c){
    .subscribe(s=>{if(s==="SUBSCRIBED")ch.track({uid})});
   t1=setInterval(draw,1000);t2=setInterval(()=>sb.rpc("purge_expired"),10000);t3=setInterval(poll,2000);poll();
 }
-function leave(){if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;login()}
+function leave(m){if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;code="";login(typeof m==="string"?m:"")}
 async function poll(){
   if(!code)return;
   const now=new Date(Date.now()+off).toISOString();
@@ -105,14 +110,16 @@ async function poll(){
   if(error){console.error(error);return}
   if(data){msgs=data;draw()}
   const{data:ms}=await sb.from("members").select("*").eq("room_code",code);
-  if(ms){ms.forEach(m=>members[m.user_id]=m);head();drawUsers()}
+  if(ms){members={};ms.forEach(m=>members[m.user_id]=m);if(!members[uid]){leave("이 방에서 나가졌어요. 차단되었을 수 있어요.");return}head();drawUsers()}
 }
 function head(){const r=myRole();$("#rl").innerHTML=tag(r);$("#clr").style.display=r==="admin"?"":"none"}
 function drawUsers(){
   const list=Object.values(members),r=myRole();
   $("#ub").textContent="참여자 "+online.size;
   $("#us").innerHTML=list.map(u=>`<div class="u"><span><i class="on ${online.has(u.user_id)?"":"off"}"></i>${esc(u.name)}${tag(u.role)}${u.user_id===uid?" (나)":""}</span>
-  ${r==="admin"&&u.role!=="admin"?`<button class="g sm" data-u="${u.user_id}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button>`:""}</div>`).join("");
+  ${r==="admin"&&u.role!=="admin"?`<span class="row"><button class="g sm" data-u="${u.user_id}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button><button class="g sm" data-ban="${u.user_id}" style="color:#e5484d">차단</button></span>`:""}</div>`).join("");
+  document.querySelectorAll("[data-ban]").forEach(b=>b.onclick=async()=>{if(!confirm("이 기기를 이 방에서 차단할까요? 다시 입장할 수 없어요."))return;
+    const{error}=await sb.rpc("ban_user",{p_code:code,p_target:b.dataset.ban});if(error)alert("차단 실패: "+error.message);else poll()});
   document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>sb.rpc("set_role",{p_code:code,p_target:b.dataset.u,p_role:b.dataset.r}));
 }
 function draw(){

@@ -59,7 +59,9 @@ function login(msg){
       if(!uid){const{data:{session}}=await sb.auth.getSession();
         if(!session){const{error}=await sb.auth.signInAnonymously();if(error)throw error}
         uid=(await sb.auth.getUser()).data.user.id}
-      const{error}=await sb.rpc(fn,{p_code:c,p_name:n});if(error)throw error;
+      const{data,error}=await sb.rpc(fn,{p_code:c,p_name:n});
+      if(error)throw new Error(/duplicate/i.test(error.message)?'이미 있는 코드예요':error.message);
+      if(!data)throw new Error(fn==='create_room'?'이미 있는 코드이거나 입력이 올바르지 않아요 (코드는 영문/숫자 4~12자)':'없는 코드예요');
       await enter(c);
     }catch(e){$("#er").textContent=e.message||"실패했어요"}
   };

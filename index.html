@@ -30,6 +30,7 @@ header small{color:var(--mu);display:block;font-size:12px}
 form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 .tag{color:#fff;border-radius:6px;font-size:10px;padding:1px 6px;margin-left:4px;font-weight:700}
 .admin{background:#f5a623}.sub{background:#2fb344}.crown{margin-left:4px;font-size:13px}form button{flex:none;width:48px;padding:0;display:grid;place-items:center}
+#rm{display:flex;flex-direction:column;gap:8px}.rm{display:flex;justify-content:space-between;align-items:center;text-align:left;flex:none}.rm small{color:var(--mu);font-weight:500}
 .err{color:#e5484d;font-size:13px;min-height:16px}
 #us{display:none;max-height:40vh;overflow-y:auto;padding:8px 12px;border-bottom:1px solid var(--bd);gap:6px;flex-direction:column}
 #us .u{display:flex;justify-content:space-between;align-items:center;font-size:14px}
@@ -53,12 +54,24 @@ function dev(){let d=st.get("m_dev");
   st.set("m_dev",d);try{document.cookie="m_dev="+d+"; max-age=315360000; path=/; SameSite=Lax"}catch{}
   return d}
 
+async function rooms(){
+  try{
+    if(!uid){const{data:{session}}=await sb.auth.getSession();if(!session)return;uid=session.user.id}
+    const{data,error}=await sb.from("members").select("room_code,name,role").eq("user_id",uid);
+    const box=$("#rm");if(!box||error||!data||!data.length)return;
+    box.innerHTML='<p class="s">내가 들어간 방</p>'+data.map(r=>`<button class="g rm" data-rc="${esc(r.room_code)}"><span>${esc(r.room_code)}</span><small>${esc(r.name)}${tag(r.role)}</small></button>`).join("");
+    box.querySelectorAll("[data-rc]").forEach(b=>b.onclick=async()=>{b.disabled=true;
+      try{await enter(b.dataset.rc)}catch(e){const er=$("#er");if(er)er.textContent=e.message||"입장에 실패했어요";b.disabled=false}});
+  }catch(e){console.error(e)}
+}
 function login(msg){
   app.innerHTML=`<div class="center"><h1>Min<span>ute</span></h1><p class="s">보낸 메시지는 1분 뒤 사라져요. 방을 만든 사람이 관리자예요.</p>
+  <div id="rm"></div>
   <input id="nm" placeholder="이름 (닉네임)" maxlength="16" value="${esc(st.get("m_name"))}">
   <input id="cd" placeholder="방 코드 (영문/숫자 4~12자)" maxlength="12" style="text-transform:uppercase" value="${esc(st.get("m_code"))}">
   <div class="err" id="er">${esc(msg||"")}</div>
   <div class="row"><button class="g" id="mk">방 만들기</button><button id="jn">입장</button></div></div>`;
+  rooms();
   const go=fn=>async()=>{
     const n=$("#nm").value.trim(),c=$("#cd").value.trim().toUpperCase();
     st.set("m_name",n);st.set("m_code",c);$("#er").textContent="";
@@ -67,7 +80,7 @@ function login(msg){
         if(!session){const{error}=await sb.auth.signInAnonymously();if(error)throw error}
         uid=(await sb.auth.getUser()).data.user.id}
       const{data,error}=await sb.rpc(fn,{p_code:c,p_name:n,p_device:dev()});
-      if(error)throw new Error(/duplicate/i.test(error.message)?'이미 있는 코드예요':error.message);
+      if(error)throw new Error(/members_room_name_uniq/i.test(error.message)?'이 방에 같은 이름이 이미 있어요. 다른 이름을 써주세요':/duplicate/i.test(error.message)?'이미 있는 코드예요':error.message);
       if(!data)throw new Error(fn==='create_room'?'이미 있는 코드이거나 입력이 올바르지 않아요 (코드는 영문/숫자 4~12자)':'없는 코드이거나 입장할 수 없어요');
       await enter(c);
     }catch(e){$("#er").textContent=e.message||"실패했어요"}

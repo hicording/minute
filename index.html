@@ -23,7 +23,9 @@ header small{color:var(--mu);display:block;font-size:12px}
 .b{background:var(--sf);padding:9px 13px;border-radius:16px;word-break:break-word;white-space:pre-wrap}
 .me .b{background:var(--ac);color:#fff}
 .bar{height:2px;background:var(--ac);margin:3px 4px 0;border-radius:2px;opacity:.5}
-.t{font-size:11px;color:var(--mu);margin:2px 4px;display:flex;gap:6px}.t a{color:#e5484d;cursor:pointer}
+.t{font-size:11px;color:var(--mu);margin:2px 4px;display:flex;gap:6px}.t a{color:#e5484d;cursor:pointer;padding:4px 8px;margin:-4px 0}
+.b.img{padding:4px;line-height:0}.b.img img{max-width:100%;max-height:260px;border-radius:12px;display:block;cursor:zoom-in}
+.t a.ed{color:var(--ac)}form button.g{background:var(--sf);font-size:18px}
 .sys{align-self:center;color:var(--mu);font-size:12px}
 form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 .tag{color:#fff;border-radius:6px;font-size:10px;padding:1px 6px;margin-left:4px;font-weight:700}
@@ -78,10 +80,12 @@ async function enter(c){
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
   <div class="row"><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="out">나가기</button></div></header>
   <div id="us"></div><div id="list"></div>
-  <form id="f"><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
+  <form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
   $("#out").onclick=leave;
+  $("#ph").onclick=()=>$("#fl").click();
+  $("#fl").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)sendImg(f)};
   $("#ub").onclick=()=>{const u=$("#us");u.style.display=u.style.display==="flex"?"none":"flex"};
-  $("#clr").onclick=()=>confirm("모든 메시지를 삭제할까요?")&&sb.rpc("clear_room",{p_code:code});
+  $("#clr").onclick=async()=>{if(!confirm("모든 메시지를 삭제할까요?"))return;const{error}=await sb.rpc("clear_room",{p_code:code});if(error){alert("전체삭제 실패: "+error.message);return}msgs=[];draw();poll(true)};
   $("#f").onsubmit=async e=>{e.preventDefault();const v=$("#tx").value.trim();if(!v)return;$("#tx").value="";
     const tmp={id:"t"+Date.now(),user_id:uid,name:(members[uid]||{}).name||"",role:myRole(),text:v,expires_at:new Date(Date.now()+off+TTL).toISOString(),tmp:1,at:Date.now()};
     msgs.push(tmp);draw();
@@ -97,6 +101,7 @@ async function enter(c){
 
   ch=sb.channel("room:"+code,{config:{presence:{key:uid}}})
    .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_code=eq."+code},p=>{if(!msgs.some(x=>x.id===p.new.id)){msgs=msgs.filter(x=>!(x.tmp&&x.user_id===p.new.user_id&&x.text===p.new.text));msgs.push(p.new)}draw()})
+   .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages",filter:"room_code=eq."+code},p=>{const m=msgs.find(x=>x.id===p.new.id);if(m){Object.assign(m,p.new);draw()}})
    .on("postgres_changes",{event:"DELETE",schema:"public",table:"messages"},p=>{msgs=msgs.filter(m=>m.id!==p.old.id);draw()})
    .on("postgres_changes",{event:"*",schema:"public",table:"members",filter:"room_code=eq."+code},p=>{
       if(p.new&&p.new.user_id){members[p.new.user_id]=p.new;head();drawUsers();draw()}})
@@ -123,7 +128,7 @@ function drawUsers(){
   $("#ub").textContent="참여자 "+list.length;
   let h=`<div class="sys" style="align-self:flex-start">온라인 ${on}명 · 참여자 ${list.length}명</div>`;
   h+=list.map(u=>`<div class="u"><span><i class="on ${online.has(u.user_id)?"":"off"}"></i>${esc(u.name)}${tag(u.role)}${u.user_id===uid?" (나)":""}</span>
-  ${r==="admin"&&u.role!=="admin"?`<span class="row"><button class="g sm" data-u="${u.user_id}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button><button class="g sm" data-ban="${u.user_id}" style="color:#e5484d">차단</button></span>`:""}</div>`).join("");
+  ${(r==="admin"&&u.role!=="admin")||(r==="sub"&&u.role==="user")?`<span class="row">${r==="admin"?`<button class="g sm" data-u="${u.user_id}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button>`:""}<button class="g sm" data-ban="${u.user_id}" style="color:#e5484d">차단</button></span>`:""}</div>`).join("");
   if(r==="admin"&&bans.length)h+=`<div class="sys" style="align-self:flex-start;margin-top:6px">차단됨 ${bans.length}명</div>`+bans.map(x=>`<div class="u"><span>${esc(x.name||"알 수 없음")}</span><button class="g sm" data-unban="${x.id}">차단 해제</button></div>`).join("");
   $("#us").innerHTML=h;
   document.querySelectorAll("[data-u]").forEach(x=>x.onclick=async()=>{x.disabled=true;
@@ -134,16 +139,65 @@ function drawUsers(){
   document.querySelectorAll("[data-unban]").forEach(x=>x.onclick=async()=>{
     const{error}=await sb.rpc("unban_user",{p_code:code,p_id:x.dataset.unban});if(error)alert("해제 실패: "+error.message);else poll(true)});
 }
+const BUCKET="chat-images",IMGP=SUPABASE_URL+"/storage/v1/object/public/"+BUCKET+"/";
+const imgUrl=t=>{t=t||"";return t.startsWith("[img]")&&t.slice(5).startsWith(IMGP)?t.slice(5):""};
+let sig="",stick=true,upl=false;
+function imgLoad(){const l=$("#list");if(l&&stick)l.scrollTop=l.scrollHeight}
+function shrink(f){return new Promise((ok,no)=>{const u=URL.createObjectURL(f),i=new Image();
+  i.onload=()=>{URL.revokeObjectURL(u);const k=Math.min(1,1024/Math.max(i.width,i.height)),c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(i.width*k));c.height=Math.max(1,Math.round(i.height*k));c.getContext("2d").drawImage(i,0,0,c.width,c.height);
+    c.toBlob(b=>b?ok(b):no(new Error("변환에 실패했어요")),"image/jpeg",.75)};
+  i.onerror=()=>no(new Error("이미지를 읽을 수 없어요"));i.src=u})}
+async function sendImg(f){
+  if(upl||!code)return;
+  if(!f.type.startsWith("image/")){alert("이미지 파일만 보낼 수 있어요");return}
+  upl=true;const pb=$("#ph");if(pb)pb.disabled=true;
+  try{
+    const blob=await shrink(f),path=code+"/"+uid+"/"+Date.now()+".jpg",bk=sb.storage.from(BUCKET);
+    const{error:ue}=await bk.upload(path,blob,{contentType:"image/jpeg"});if(ue)throw ue;
+    const url=bk.getPublicUrl(path).data.publicUrl;
+    const{error}=await sb.rpc("send_message",{p_code:code,p_text:"[img]"+url});
+    if(error){bk.remove([path]);throw error}
+    setTimeout(()=>bk.remove([path]),TTL+15000);
+    poll(true);
+  }catch(e){alert("사진 전송 실패: "+(e.message||e))}
+  finally{upl=false;const p2=$("#ph");if(p2)p2.disabled=false}
+}
 function draw(){
   const l=$("#list");if(!l)return;const now=Date.now()+off,mod=myRole()!=="user";
   msgs=msgs.filter(m=>Date.parse(m.expires_at)>now);
-  const end=l.scrollHeight-l.scrollTop-l.clientHeight<80;
-  l.innerHTML=msgs.length?msgs.map(m=>{const exp=Date.parse(m.expires_at);return`<div class="m ${m.user_id===uid?"me":""}"><div class="n">${esc(m.name)}${tag((members[m.user_id]||{}).role||m.role)}</div>
-  <div class="b">${esc(m.text)}</div><div class="bar" style="width:${Math.max(0,(exp-now)/TTL*100)}%"></div>
-  <div class="t">${Math.ceil((exp-now)/1000)}초 후 삭제${mod?` <a data-id="${m.id}">삭제</a>`:""}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
-  l.querySelectorAll("a[data-id]").forEach(a=>a.onclick=()=>sb.rpc("delete_message",{p_id:a.dataset.id}));
-  if(end)l.scrollTop=l.scrollHeight;
+  const s=(mod?"1":"0")+msgs.map(m=>m.id+"|"+m.name+"|"+((members[m.user_id]||{}).role||m.role||"")+"|"+m.text).join("\n");
+  if(s!==sig){
+    sig=s;const end=l.scrollHeight-l.scrollTop-l.clientHeight<80;stick=end;
+    l.innerHTML=msgs.length?msgs.map(m=>{const u=imgUrl(m.text),e=Date.parse(m.expires_at),own=m.user_id===uid&&!m.tmp&&!u;
+      return`<div class="m ${m.user_id===uid?"me":""}"><div class="n">${esc(m.name)}${tag((members[m.user_id]||{}).role||m.role)}</div>
+  ${u?`<div class="b img"><a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="사진" onload="imgLoad()"></a></div>`:`<div class="b">${esc(m.text)}</div>`}<div class="bar" data-e="${e}"></div>
+  <div class="t"><span data-e="${e}"></span>${own?` <a class="ed" data-edit="${m.id}">수정</a>`:""}${mod&&!m.tmp?` <a data-id="${m.id}">삭제</a>`:""}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
+    if(end)l.scrollTop=l.scrollHeight;
+  }
+  l.querySelectorAll("div.bar[data-e]").forEach(e=>e.style.width=Math.max(0,(e.dataset.e-now)/TTL*100)+"%");
+  l.querySelectorAll("span[data-e]").forEach(e=>e.textContent=Math.ceil((e.dataset.e-now)/1000)+"초 후 삭제");
 }
+document.addEventListener("click",async e=>{
+  const a=e.target.closest&&e.target.closest("a[data-edit]");if(!a)return;
+  const id=a.dataset.edit,m=msgs.find(x=>String(x.id)===id);if(!m)return;
+  const v=prompt("메시지 수정",m.text);if(v===null)return;const t=v.trim();
+  if(!t||t===m.text)return;
+  if(t.length>500){alert("500자까지 입력할 수 있어요");return}
+  if(t.startsWith("[img]")){alert("이 형식으로는 수정할 수 없어요");return}
+  const{data,error}=await sb.rpc("edit_message",{p_id:id,p_text:t});
+  if(error){alert("수정 실패: "+error.message);return}
+  if(data===false){alert("수정할 수 없어요. 이미 사라졌거나 내 메시지가 아니에요");return}
+  m.text=t;draw();poll(true);
+});
+document.addEventListener("click",async e=>{
+  const a=e.target.closest&&e.target.closest("a[data-id]");if(!a)return;
+  const id=a.dataset.id;
+  if(id[0]==="t"){msgs=msgs.filter(m=>m.id!==id);draw();return}
+  const{error}=await sb.rpc("delete_message",{p_id:id});
+  if(error){alert("삭제 실패: "+error.message);return}
+  msgs=msgs.filter(m=>String(m.id)!==String(id));draw();
+});
 if(SUPABASE_URL.includes("YOUR-PROJECT")){app.innerHTML='<div class="center"><h1>Min<span>ute</span></h1><p class="s">index.html 위쪽의 SUPABASE_URL과 SUPABASE_KEY를 먼저 채워주세요.</p></div>'}
 else{sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);login()}
 </script></body></html>

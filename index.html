@@ -66,7 +66,7 @@ form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 #md{position:fixed;inset:0;background:#0007;z-index:10;display:grid;place-items:center;padding:16px}
 #md .box{background:var(--bg);border-radius:16px;padding:16px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;max-height:90vh;overflow:auto}
 #po{display:flex;flex-direction:column;gap:6px}
-.un{color:#f5a623;font-weight:700;font-size:12px;margin-right:2px}.rq[data-rt]{cursor:pointer}.po.end{cursor:default}.po.win{border-color:#2fb344;font-weight:700}.po.win .pf{background:#2fb344;opacity:.25}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
+.ck{display:flex;align-items:center;gap:10px;font-size:14px}.ck input{flex:none;width:20px;height:20px;padding:0;margin:0}.un{color:#f5a623;font-weight:700;font-size:12px;margin-right:2px}.rq[data-rt]{cursor:pointer}.po.end{cursor:default}.po.win{border-color:#2fb344;font-weight:700}.po.win .pf{background:#2fb344;opacity:.25}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>
@@ -176,7 +176,7 @@ async function poll(force){
   if(error){console.error(error);return}
   if(data){const tm=msgs.filter(x=>x.tmp&&Date.now()-x.at<8000&&!data.some(d=>d.user_id===x.user_id&&d.text===x.text));msgs=data.concat(tm);draw()}
   {const{data:xd,error:xe}=await sb.rpc("room_extras",{p_code:code,p_seen:!document.hidden&&cv.style.display!=="block"});if(!xe&&xd){ex=xd;draw()}}
-  if(!force&&pn++%3)return;
+  if(!force&&!(document.hidden||cv.style.display==="block")&&pn++%3)return;
   const{data:ms}=await sb.from("members").select("*").eq("room_code",code);
   if(ms){members={};ms.forEach(m=>members[m.user_id]=m);if(!members[uid]){leave("이 방에서 나가졌어요. 방이 삭제되었거나 차단되었을 수 있어요.");return}if(myRole()==="admin"){const{data:bs}=await sb.from("bans").select("*").eq("room_code",code);bans=bs||[]}else bans=[];
   head();drawUsers()}
@@ -252,17 +252,25 @@ async function copyTxt(t){try{await navigator.clipboard.writeText(t)}catch(_){co
 let picking=0,nseen=null;
 const ntfOn=()=>{try{return localStorage.getItem("ntf")==="1"&&window.Notification&&Notification.permission==="granted"}catch(_){return false}};
 function ntfIcon(){const b=$("#bn");if(b)b.textContent=ntfOn()?"🔔":"🔕"}
-async function toggleNtf(){if(!window.Notification){alert("이 브라우저는 알림을 지원하지 않아요 (아이폰은 홈 화면에 추가한 뒤 가능해요)");return}
-  if(ntfOn()){try{localStorage.setItem("ntf","0")}catch(_){}ntfIcon();toast("알림 꺼짐");return}
-  const p=Notification.permission==="granted"?"granted":await Notification.requestPermission();
-  if(p!=="granted"){alert("알림 권한이 허용되지 않았어요. 브라우저 설정에서 허용해 주세요");return}
-  try{localStorage.setItem("ntf","1")}catch(_){}ntfIcon();toast("알림 켜짐 (내용은 표시되지 않아요)")}
-async function showNtf(t){try{const r=await navigator.serviceWorker.getRegistration();if(r){await r.showNotification(t,{tag:"minute"});return}}catch(_){}try{new Notification(t,{tag:"minute"})}catch(_){}}
+const lsg=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v==="1"}catch(_){return d}};
+const lss=(k,v)=>{try{localStorage.setItem(k,v?"1":"0")}catch(_){}};
+function toggleNtf(){const d=document.createElement("div");d.id="md";
+  d.innerHTML=`<div class="box"><b>🔔 알림 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><p class="s">앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p><div class="row"><button id="nx">닫기</button></div></div>`;
+  document.body.appendChild(d);
+  const c=$("#n1");c.checked=ntfOn();$("#n2").checked=lsg("nsnd",false);$("#n3").checked=lsg("nprv",true);
+  c.onchange=async()=>{if(!c.checked){lss("ntf",0);ntfIcon();return}
+    if(!window.Notification){alert("이 브라우저는 알림을 지원하지 않아요 (아이폰은 홈 화면에 추가한 뒤 가능해요)");c.checked=false;return}
+    const p=Notification.permission==="granted"?"granted":await Notification.requestPermission();
+    if(p!=="granted"){alert("알림 권한이 허용되지 않았어요. 브라우저 설정에서 허용해 주세요");c.checked=false;return}
+    lss("ntf",1);ntfIcon()};
+  $("#n2").onchange=e=>lss("nsnd",e.target.checked);$("#n3").onchange=e=>lss("nprv",e.target.checked);
+  $("#nx").onclick=()=>d.remove()}
+async function showNtf(t,b){const snd=lsg("nsnd",false),o={body:b,tag:"minute",silent:!snd,renotify:snd,icon:new URL("icon.png",location.href).href,badge:new URL("badge.png",location.href).href};try{const r=await navigator.serviceWorker.getRegistration();if(r){await r.showNotification(t,o);return}}catch(_){}try{new Notification(t,o)}catch(_){}}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 function notifyNew(){const ids=new Set(msgs.map(m=>String(m.id)));if(nseen===null){nseen=ids;return}
   const fresh=msgs.filter(m=>!nseen.has(String(m.id))&&!m.tmp&&m.user_id!==uid);nseen=ids;
   if(!fresh.length||!(document.hidden||cv.style.display==="block")||!ntfOn())return;
-  showNtf("새 메시지 "+fresh.length+"개")}
+  {const m=fresh[fresh.length-1],p=plain(m.text);if(!lsg("nprv",true))showNtf("새 메시지 "+fresh.length+"개","");else showNtf((fresh.length>1?fresh.length+"개 · ":"")+(m.name||"새 메시지"),p.length>15?p.slice(0,15)+"…":p)}}
 document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("#list .b.img a");if(!a)return;e.preventDefault();
   const d=document.createElement("div");d.style.cssText="position:fixed;inset:0;background:#000e;z-index:25;display:grid;place-items:center;padding:12px";
   d.innerHTML=`<img src="${esc(a.href)}" style="max-width:100%;max-height:100%;object-fit:contain">`;d.onclick=()=>d.remove();document.body.appendChild(d)});

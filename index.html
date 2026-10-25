@@ -301,8 +301,13 @@ document.addEventListener("click",async e=>{const t=e.target;let a,r;
   if(a=t.closest("[data-dn]")){r=await sb.rpc("delete_notice",{p_id:a.dataset.dn});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
   if(t.closest("#pbb")){openPl=!openPl;sp="";drawEx()}});
 const cv=document.createElement("div");cv.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:none";document.body.appendChild(cv);
-const cover=on=>{cv.style.display=on?"block":"none"};
-cv.onclick=()=>cover(0);
+let cvT=0,cvI=null;
+const cvf=sec=>(sec>=60?Math.floor(sec/60)+"분 ":"")+(sec%60)+"초";
+const cvs=document.createElement("div");cvs.style.cssText="text-align:center;padding-top:calc(env(safe-area-inset-top,0px) + 14px);font-size:13px;color:var(--mu)";cv.appendChild(cvs);
+const cover=on=>{const was=cv.style.display==="block";if(on&&!was){cvT=Date.now();cvs.textContent="0초";clearInterval(cvI);cvI=setInterval(()=>{cvs.textContent=cvf(Math.round((Date.now()-cvT)/1000))},1000)}
+  if(!on&&was){clearInterval(cvI);toast(cvf(Math.round((Date.now()-cvT)/1000))+" 동안 가려져 있었어요")}
+  cv.style.display=on?"block":"none"};
+cv.onclick=e=>{const k=72,x=e.clientX,y=e.clientY,W=innerWidth,H=innerHeight;if((x<k||x>W-k)&&(y<k||y>H-k))cover(0)};
 document.addEventListener("keydown",e=>{if(e.altKey&&e.code==="KeyV"){e.preventDefault();cover(cv.style.display==="none")}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&code)cover(1)});
 function draw(){

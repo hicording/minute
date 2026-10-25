@@ -66,6 +66,7 @@ form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 #md{position:fixed;inset:0;background:#0007;z-index:10;display:grid;place-items:center;padding:16px}
 #md .box{background:var(--bg);border-radius:16px;padding:16px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;max-height:90vh;overflow:auto}
 #po{display:flex;flex-direction:column;gap:6px}
+.rq[data-rt]{cursor:pointer}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>
@@ -231,17 +232,17 @@ async function sendImg(f){
 
 let rep=null,ex={notes:[],polls:[],reacts:[]},gest=0,openPl=false,sn="",sp="",g=null;
 const RX=["❤️","👍","😂","😮","😢","🙏"];
-function parseRe(t){if(!t||!t.startsWith("[re]"))return null;const a=t.slice(4).split("\n");return a.length<3?null:{name:a[0],snip:a[1],body:a.slice(2).join("\n")}}
-const mkRe=(r,v)=>"[re]"+r.name+"\n"+r.snip+"\n"+v;
+function parseRe(t){if(!t||!t.startsWith("[re]"))return null;const a=t.slice(4).split("\n");if(a.length<3)return null;const i=a[0].indexOf("|");return{id:i<0?"":a[0].slice(0,i),name:i<0?a[0]:a[0].slice(i+1),snip:a[1],body:a.slice(2).join("\n")}}
+const mkRe=(r,v)=>"[re]"+(r.id||"")+"|"+r.name+"\n"+r.snip+"\n"+v;
 const plain=t=>{if(imgUrl(t))return"📷 사진";const r=parseRe(t);return(r?r.body:t).replace(/\s+/g," ").slice(0,30)};
-const bodyHtml=t=>{const r=parseRe(t);return r?`<div class="rq">↩ ${esc(r.name)}: ${esc(r.snip)}</div>${esc(r.body)}`:esc(t)};
+const bodyHtml=t=>{const r=parseRe(t);return r?`<div class="rq" data-rt="${esc(r.id)}">↩ ${esc(r.name)}: ${esc(r.snip)}</div>${esc(r.body)}`:esc(t)};
 const rxSig=()=>ex.reacts.map(r=>r.m+r.u+r.e).join(",")+"#";
 function rxHtml(id){const o={};ex.reacts.forEach(r=>{if(String(r.m)!==String(id))return;const x=o[r.e]||(o[r.e]={n:0,my:0});x.n++;if(r.u===uid)x.my=1});
   const k=Object.keys(o);return k.length?`<div class="rx">${k.map(e=>`<i data-rx="${esc(id)}" data-emo="${esc(e)}" class="${o[e].my?"my":""}">${e} ${o[e].n}</i>`).join("")}</div>`:""}
 function setRep(r){rep=r;const b=$("#rp");if(!b)return;b.style.display=r?"flex":"none";
   if(r){b.innerHTML=`<span>↩ ${esc(r.name)}: ${esc(r.snip)}</span><a id="rpx">✕</a>`;$("#rpx").onclick=()=>setRep(null);$("#tx").focus()}}
 const findM=id=>msgs.find(z=>String(z.id)===String(id));
-function startReply(id){const m=findM(id);if(m&&!m.tmp)setRep({name:m.name,snip:plain(m.text)})}
+function startReply(id){const m=findM(id);if(m&&!m.tmp)setRep({id:String(m.id),name:m.name,snip:plain(m.text)})}
 async function react(id,e){const{error}=await sb.rpc("react",{p_code:code,p_msg:String(id),p_emoji:e});if(error)alert("이모지 실패: "+error.message);else poll(true)}
 async function notice(m){if(imgUrl(m.text)){alert("사진은 공지로 올릴 수 없어요");return}
   const r=parseRe(m.text),b=(r?r.body:m.text).trim().slice(0,200);
@@ -276,6 +277,10 @@ function pollModal(){const d=document.createElement("div");d.id="md";
     if(!q||o.length<2){alert("질문과 항목을 2개 이상 입력해 주세요");return}
     const{error}=await sb.rpc("create_poll",{p_code:code,p_q:q,p_opts:o});if(error){alert("투표 만들기 실패: "+error.message);return}
     d.remove();openPl=true;poll(true)}}
+function toast(x){const d=document.createElement("div");d.textContent=x;d.style.cssText="position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 14px;border-radius:16px;font-size:13px;z-index:11";document.body.appendChild(d);setTimeout(()=>d.remove(),1800)}
+function goOrig(id){const el=id&&[...document.querySelectorAll("#list .m[data-mid]")].find(x=>x.dataset.mid===id);
+  if(!el){toast("원본 메시지가 이미 사라졌어요");return}
+  el.scrollIntoView({block:"center",behavior:"smooth"});el.classList.remove("fl");void el.offsetWidth;el.classList.add("fl");setTimeout(()=>el.classList.remove("fl"),1500)}
 function drawEx(){const now=Date.now()+off,mod=myRole()!=="user";
   const ns=(ex.notes||[]).filter(n=>Date.parse(n.expires_at)>now),ps=(ex.polls||[]).filter(p=>Date.parse(p.ends_at)>now);
   const nh=ns.map(n=>`<div class="ni"><span>📢 <b>${esc(n.name||"")}</b> ${esc(n.text)}</span><small>${Math.ceil((Date.parse(n.expires_at)-now)/60000)}분</small>${mod?`<a data-dn="${n.id}">✕</a>`:""}</div>`).join("");
@@ -285,6 +290,7 @@ function drawEx(){const now=Date.now()+off,mod=myRole()!=="user";
     return`<div><div class="pq">${esc(p.q)}</div>${p.opts.map((t,i)=>{const n=c[i]||0;return`<div class="po${p.mine===i?" my":""}" data-v="${p.id}" data-i="${i}"><div class="pf" style="width:${tot?Math.round(n/tot*100):0}%"></div><span>${esc(t)}</span><small>${n}표</small></div>`}).join("")}<div class="pm"><span>${esc(p.name||"")} · ${tot}명 참여 · ${left}시간 남음</span>${p.by===uid||mod?`<a data-ep="${p.id}">끝내기</a>`:""}</div></div>`}).join(""):"");
   if(ph!==sp){sp=ph;const[a,b]=ph.split("\u0001"),pb=$("#pb"),pl=$("#pl");if(pb){pb.innerHTML=a;pb.style.display=a?"":"none";pl.innerHTML=b;pl.style.display=b?"flex":"none"}}}
 document.addEventListener("click",async e=>{const t=e.target;let a,r;
+  if(a=t.closest("[data-rt]")){goOrig(a.dataset.rt);return}
   if(a=t.closest("[data-rx]")){await react(a.dataset.rx,a.dataset.emo);return}
   if(a=t.closest("[data-v]")){r=await sb.rpc("vote",{p_poll:a.dataset.v,p_choice:+a.dataset.i});if(r.error)alert("투표 실패: "+r.error.message);else poll(true);return}
   if(a=t.closest("[data-ep]")){if(!confirm("이 투표를 끝낼까요?"))return;r=await sb.rpc("end_poll",{p_poll:a.dataset.ep});if(r.error)alert("실패: "+r.error.message);else poll(true);return}

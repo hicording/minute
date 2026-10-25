@@ -66,7 +66,7 @@ form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 #md{position:fixed;inset:0;background:#0007;z-index:10;display:grid;place-items:center;padding:16px}
 #md .box{background:var(--bg);border-radius:16px;padding:16px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;max-height:90vh;overflow:auto}
 #po{display:flex;flex-direction:column;gap:6px}
-.rq[data-rt]{cursor:pointer}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
+.rq[data-rt]{cursor:pointer}.po.end{cursor:default}.po.win{border-color:#2fb344;font-weight:700}.po.win .pf{background:#2fb344;opacity:.25}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>
@@ -123,10 +123,10 @@ function login(msg){
 async function enter(c){
   code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[]};rep=null;sn=sp="";openPl=false;
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
-  <div class="row"><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
+  <div class="row"><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="nt"></div><div id="pb" style="display:none"></div><div id="pl" style="display:none"></div><div id="us"></div><div id="list"></div>
   <div id="rp"></div><form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><button type="button" class="g" id="pv" aria-label="투표 만들기">📊</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
-  $("#home").onclick=()=>leave();bindGest();$("#pv").onclick=pollModal;setRep(null);
+  $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);bindGest();$("#pv").onclick=pollModal;setRep(null);
   $("#del").onclick=async()=>{
     const v=prompt("방을 삭제하면 모든 메시지와 참여자가 지워지고, 아무도 다시 들어오거나 채팅을 보낼 수 없어요. 되돌릴 수 없어요.\n\n삭제하려면 방 코드 "+code+" 를 그대로 입력하세요.");
     if(v===null)return;
@@ -282,12 +282,16 @@ function goOrig(id){const el=id&&[...document.querySelectorAll("#list .m[data-mi
   if(!el){toast("원본 메시지가 이미 사라졌어요");return}
   el.scrollIntoView({block:"center",behavior:"smooth"});el.classList.remove("fl");void el.offsetWidth;el.classList.add("fl");setTimeout(()=>el.classList.remove("fl"),1500)}
 function drawEx(){const now=Date.now()+off,mod=myRole()!=="user";
-  const ns=(ex.notes||[]).filter(n=>Date.parse(n.expires_at)>now),ps=(ex.polls||[]).filter(p=>Date.parse(p.ends_at)>now);
+  const ns=(ex.notes||[]).filter(n=>Date.parse(n.expires_at)>now);
   const nh=ns.map(n=>`<div class="ni"><span>📢 <b>${esc(n.name||"")}</b> ${esc(n.text)}</span><small>${Math.ceil((Date.parse(n.expires_at)-now)/60000)}분</small>${mod?`<a data-dn="${n.id}">✕</a>`:""}</div>`).join("");
   if(nh!==sn){sn=nh;const b=$("#nt");if(b){b.innerHTML=nh;b.style.display=nh?"block":"none"}}
-  const ph=(ps.length?`<button class="g" id="pbb">📊 진행 중인 투표 ${ps.length}개 ${openPl?"▴":"▾"}</button>`:"")+"\u0001"+(openPl?ps.map(p=>{
-    const c=p.counts||{},tot=p.opts.reduce((a,_,i)=>a+(c[i]||0),0),left=Math.max(1,Math.ceil((Date.parse(p.ends_at)-now)/3600000));
-    return`<div><div class="pq">${esc(p.q)}</div>${p.opts.map((t,i)=>{const n=c[i]||0;return`<div class="po${p.mine===i?" my":""}" data-v="${p.id}" data-i="${i}"><div class="pf" style="width:${tot?Math.round(n/tot*100):0}%"></div><span>${esc(t)}</span><small>${n}표</small></div>`}).join("")}<div class="pm"><span>${esc(p.name||"")} · ${tot}명 참여 · ${left}시간 남음</span>${p.by===uid||mod?`<a data-ep="${p.id}">끝내기</a>`:""}</div></div>`}).join(""):"");
+  const all=(ex.polls||[]).filter(p=>Date.parse(p.ends_at)>now-600000).map(p=>({...p,end:!!p.ended||Date.parse(p.ends_at)<=now}));
+  const act=all.filter(p=>!p.end),don=all.filter(p=>p.end),ps=act.concat(don);
+  const lbl=(act.length?"진행 중 "+act.length+"개":"")+(act.length&&don.length?" · ":"")+(don.length?"결과 "+don.length+"개":"");
+  const ph=(ps.length?`<button class="g" id="pbb">📊 투표 ${lbl} ${openPl?"▴":"▾"}</button>`:"")+"\u0001"+(openPl?ps.map(p=>{
+    const c=p.counts||{},tot=p.opts.reduce((a,_,i)=>a+(c[i]||0),0),mx=Math.max(0,...p.opts.map((_,i)=>c[i]||0)),
+      left=p.end?Math.max(1,Math.ceil((Date.parse(p.ends_at)+600000-now)/60000))+"분 후 사라짐":Math.max(1,Math.ceil((Date.parse(p.ends_at)-now)/3600000))+"시간 남음";
+    return`<div><div class="pq">${p.end?"🏁 ":""}${esc(p.q)}${p.end?" (종료)":""}</div>${p.opts.map((t,i)=>{const n=c[i]||0;return`<div class="po${p.mine===i?" my":""}${p.end?" end":""}${p.end&&tot&&n===mx?" win":""}"${p.end?"":` data-v="${p.id}" data-i="${i}"`}><div class="pf" style="width:${tot?Math.round(n/tot*100):0}%"></div><span>${esc(t)}</span><small>${n}표</small></div>`}).join("")}<div class="pm"><span>${esc(p.name||"")} · ${tot}명 참여 · ${left}</span>${!p.end&&(p.by===uid||mod)?`<a data-ep="${p.id}">끝내기</a>`:""}</div></div>`}).join(""):"");
   if(ph!==sp){sp=ph;const[a,b]=ph.split("\u0001"),pb=$("#pb"),pl=$("#pl");if(pb){pb.innerHTML=a;pb.style.display=a?"":"none";pl.innerHTML=b;pl.style.display=b?"flex":"none"}}}
 document.addEventListener("click",async e=>{const t=e.target;let a,r;
   if(a=t.closest("[data-rt]")){goOrig(a.dataset.rt);return}
@@ -296,6 +300,11 @@ document.addEventListener("click",async e=>{const t=e.target;let a,r;
   if(a=t.closest("[data-ep]")){if(!confirm("이 투표를 끝낼까요?"))return;r=await sb.rpc("end_poll",{p_poll:a.dataset.ep});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
   if(a=t.closest("[data-dn]")){r=await sb.rpc("delete_notice",{p_id:a.dataset.dn});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
   if(t.closest("#pbb")){openPl=!openPl;sp="";drawEx()}});
+const cv=document.createElement("div");cv.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:none;color:var(--mu);text-align:center;padding-top:42vh;font-size:15px";cv.innerHTML="일시정지<br><small style=\"font-size:12px\">화면을 누르면 돌아가요</small>";document.body.appendChild(cv);
+const cover=on=>{cv.style.display=on?"block":"none"};
+cv.onclick=()=>cover(0);
+document.addEventListener("keydown",e=>{if(e.altKey&&e.code==="KeyV"){e.preventDefault();cover(cv.style.display==="none")}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&code)cover(1)});
 function draw(){
   const l=$("#list");if(!l)return;const now=Date.now()+off,mod=myRole()!=="user";
   msgs=msgs.filter(m=>Date.parse(m.expires_at)>now);

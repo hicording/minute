@@ -141,7 +141,7 @@ async function enter(c){
     if(error){alert("나가기 실패: "+error.message);return}
     leave();
   };
-  $("#ph").onclick=()=>$("#fl").click();
+  $("#ph").onclick=()=>{picking=1;$("#fl").click()};
   $("#fl").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)sendImg(f)};
   $("#ub").onclick=()=>{const u=$("#us");u.style.display=u.style.display==="flex"?"none":"flex"};
   $("#clr").onclick=async()=>{if(!confirm("모든 메시지를 삭제할까요?"))return;const{error}=await sb.rpc("clear_room",{p_code:code});if(error){alert("전체삭제 실패: "+error.message);return}msgs=[];draw();poll(true)};
@@ -248,16 +248,18 @@ async function react(id,e){const{error}=await sb.rpc("react",{p_code:code,p_msg:
 async function notice(m){if(imgUrl(m.text)){alert("사진은 공지로 올릴 수 없어요");return}
   const r=parseRe(m.text),b=(r?r.body:m.text).trim().slice(0,200);
   const{error}=await sb.rpc("post_notice",{p_code:code,p_text:b,p_author:m.name||""});if(error)alert("공지 실패: "+error.message);else poll(true)}
+async function copyTxt(t){try{await navigator.clipboard.writeText(t)}catch(_){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(_){}a.remove()}toast("복사했어요")}
+let picking=0;
 function closePk(){const p=$("#pk");if(p)p.remove()}
 function openPk(el){closePk();const m=findM(el.dataset.mid);if(!m||m.tmp)return;
   const p=document.createElement("div");p.id="pk";
-  p.innerHTML=`<div>${RX.map(e=>`<b data-pe="${e}">${e}</b>`).join("")}</div><div class="pa"><a data-pa="re">↩ 답장</a>${myRole()!=="user"?'<a data-pa="nt">📢 공지</a>':""}</div>`;
+  p.innerHTML=`<div>${RX.map(e=>`<b data-pe="${e}">${e}</b>`).join("")}</div><div class="pa"><a data-pa="re">↩ 답장</a>${imgUrl(m.text)?"":'<a data-pa="cp">📋 복사</a>'}${myRole()!=="user"?'<a data-pa="nt">📢 공지</a>':""}</div>`;
   document.body.appendChild(p);
   const r=el.getBoundingClientRect(),w=p.offsetWidth,h=p.offsetHeight;
   p.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+"px";
   p.style.top=(r.top-h-6<8?r.bottom+6:r.top-h-6)+"px";
   p.onclick=ev=>{const a=ev.target.closest("[data-pe],[data-pa]");if(!a)return;closePk();
-    if(a.dataset.pe)react(m.id,a.dataset.pe);else if(a.dataset.pa==="re")startReply(m.id);else notice(m)};
+    if(a.dataset.pe)react(m.id,a.dataset.pe);else if(a.dataset.pa==="re")startReply(m.id);else if(a.dataset.pa==="cp"){const r=parseRe(m.text);copyTxt(r?r.body:m.text)}else notice(m)};
   const out=ev=>{if(ev.target.closest("#pk"))document.addEventListener("pointerdown",out,{once:true});else closePk()};
   setTimeout(()=>document.addEventListener("pointerdown",out,{once:true}),0)}
 function bindGest(){const l=$("#list");
@@ -311,7 +313,7 @@ const cover=on=>{const was=cv.style.display==="block";if(on&&!was){cvT=Date.now(
   cv.style.display=on?"block":"none"};
 cv.onclick=e=>{const k=72,x=e.clientX,y=e.clientY,W=innerWidth,H=innerHeight;if((x<k||x>W-k)&&(y<k||y>H-k))cover(0)};
 document.addEventListener("keydown",e=>{if(e.altKey&&e.code==="KeyV"){e.preventDefault();cover(cv.style.display==="none")}});
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&code)cover(1)});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){if(code&&!picking)cover(1)}else if(picking)setTimeout(()=>picking=0,4000)});
 function draw(){
   const l=$("#list");if(!l)return;const now=Date.now()+off,mod=myRole()!=="user";
   msgs=msgs.filter(m=>Date.parse(m.expires_at)>now);

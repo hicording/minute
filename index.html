@@ -66,7 +66,7 @@ form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 #md{position:fixed;inset:0;background:#0007;z-index:10;display:grid;place-items:center;padding:16px}
 #md .box{background:var(--bg);border-radius:16px;padding:16px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;max-height:90vh;overflow:auto}
 #po{display:flex;flex-direction:column;gap:6px}
-.rq[data-rt]{cursor:pointer}.po.end{cursor:default}.po.win{border-color:#2fb344;font-weight:700}.po.win .pf{background:#2fb344;opacity:.25}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
+.un{color:#f5a623;font-weight:700;font-size:12px;margin-right:2px}.rq[data-rt]{cursor:pointer}.po.end{cursor:default}.po.win{border-color:#2fb344;font-weight:700}.po.win .pf{background:#2fb344;opacity:.25}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>
@@ -121,7 +121,7 @@ function login(msg){
 }
 
 async function enter(c){
-  code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[]};rep=null;sn=sp="";openPl=false;
+  code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};rep=null;sn=sp="";openPl=false;
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
   <div class="row"><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="nt"></div><div id="pb" style="display:none"></div><div id="pl" style="display:none"></div><div id="us"></div><div id="list"></div>
@@ -175,7 +175,7 @@ async function poll(force){
   const{data,error}=await sb.from("messages").select("*").eq("room_code",code).gt("expires_at",now).order("created_at");
   if(error){console.error(error);return}
   if(data){const tm=msgs.filter(x=>x.tmp&&Date.now()-x.at<8000&&!data.some(d=>d.user_id===x.user_id&&d.text===x.text));msgs=data.concat(tm);draw()}
-  {const{data:xd,error:xe}=await sb.rpc("room_extras",{p_code:code});if(!xe&&xd){ex=xd;draw()}}
+  {const{data:xd,error:xe}=await sb.rpc("room_extras",{p_code:code,p_seen:!document.hidden&&cv.style.display!=="block"});if(!xe&&xd){ex=xd;draw()}}
   if(!force&&pn++%3)return;
   const{data:ms}=await sb.from("members").select("*").eq("room_code",code);
   if(ms){members={};ms.forEach(m=>members[m.user_id]=m);if(!members[uid]){leave("이 방에서 나가졌어요. 방이 삭제되었거나 차단되었을 수 있어요.");return}if(myRole()==="admin"){const{data:bs}=await sb.from("bans").select("*").eq("room_code",code);bans=bs||[]}else bans=[];
@@ -236,6 +236,7 @@ function parseRe(t){if(!t||!t.startsWith("[re]"))return null;const a=t.slice(4).
 const mkRe=(r,v)=>"[re]"+(r.id||"")+"|"+r.name+"\n"+r.snip+"\n"+v;
 const plain=t=>{if(imgUrl(t))return"📷 사진";const r=parseRe(t);return(r?r.body:t).replace(/\s+/g," ").slice(0,30)};
 const bodyHtml=t=>{const r=parseRe(t);return r?`<div class="rq" data-rt="${esc(r.id)}">↩ ${esc(r.name)}: ${esc(r.snip)}</div>${esc(r.body)}`:esc(t)};
+const unread=m=>{if(m.tmp||!ex.reads)return 0;const c=Date.parse(m.created_at);return ex.reads.filter(r=>r.u!==m.user_id&&(!r.t||Date.parse(r.t)<c)).length};
 const rxSig=()=>ex.reacts.map(r=>r.m+r.u+r.e).join(",")+"#";
 function rxHtml(id){const o={};ex.reacts.forEach(r=>{if(String(r.m)!==String(id))return;const x=o[r.e]||(o[r.e]={n:0,my:0});x.n++;if(r.u===uid)x.my=1});
   const k=Object.keys(o);return k.length?`<div class="rx">${k.map(e=>`<i data-rx="${esc(id)}" data-emo="${esc(e)}" class="${o[e].my?"my":""}">${e} ${o[e].n}</i>`).join("")}</div>`:""}
@@ -291,19 +292,20 @@ function drawEx(){const now=Date.now()+off,mod=myRole()!=="user";
   const ph=(ps.length?`<button class="g" id="pbb">📊 투표 ${lbl} ${openPl?"▴":"▾"}</button>`:"")+"\u0001"+(openPl?ps.map(p=>{
     const c=p.counts||{},tot=p.opts.reduce((a,_,i)=>a+(c[i]||0),0),mx=Math.max(0,...p.opts.map((_,i)=>c[i]||0)),
       left=p.end?Math.max(1,Math.ceil((Date.parse(p.ends_at)+600000-now)/60000))+"분 후 사라짐":Math.max(1,Math.ceil((Date.parse(p.ends_at)-now)/3600000))+"시간 남음";
-    return`<div><div class="pq">${p.end?"🏁 ":""}${esc(p.q)}${p.end?" (종료)":""}</div>${p.opts.map((t,i)=>{const n=c[i]||0;return`<div class="po${p.mine===i?" my":""}${p.end?" end":""}${p.end&&tot&&n===mx?" win":""}"${p.end?"":` data-v="${p.id}" data-i="${i}"`}><div class="pf" style="width:${tot?Math.round(n/tot*100):0}%"></div><span>${esc(t)}</span><small>${n}표</small></div>`}).join("")}<div class="pm"><span>${esc(p.name||"")} · ${tot}명 참여 · ${left}</span>${!p.end&&(p.by===uid||mod)?`<a data-ep="${p.id}">끝내기</a>`:""}</div></div>`}).join(""):"");
+    return`<div><div class="pq">${p.end?"🏁 ":""}${esc(p.q)}${p.end?" (종료)":""}</div>${p.opts.map((t,i)=>{const n=c[i]||0;return`<div class="po${p.mine===i?" my":""}${p.end?" end":""}${p.end&&tot&&n===mx?" win":""}"${p.end?"":` data-v="${p.id}" data-i="${i}"`}><div class="pf" style="width:${tot?Math.round(n/tot*100):0}%"></div><span>${esc(t)}</span><small>${n}표</small></div>`}).join("")}<div class="pm"><span>${esc(p.name||"")} · ${tot}명 참여 · ${left}</span>${p.by===uid||mod?(p.end?`<a data-xp="${p.id}">삭제</a>`:`<a data-ep="${p.id}">끝내기</a>`):""}</div></div>`}).join(""):"");
   if(ph!==sp){sp=ph;const[a,b]=ph.split("\u0001"),pb=$("#pb"),pl=$("#pl");if(pb){pb.innerHTML=a;pb.style.display=a?"":"none";pl.innerHTML=b;pl.style.display=b?"flex":"none"}}}
 document.addEventListener("click",async e=>{const t=e.target;let a,r;
   if(a=t.closest("[data-rt]")){goOrig(a.dataset.rt);return}
   if(a=t.closest("[data-rx]")){await react(a.dataset.rx,a.dataset.emo);return}
   if(a=t.closest("[data-v]")){r=await sb.rpc("vote",{p_poll:a.dataset.v,p_choice:+a.dataset.i});if(r.error)alert("투표 실패: "+r.error.message);else poll(true);return}
   if(a=t.closest("[data-ep]")){if(!confirm("이 투표를 끝낼까요?"))return;r=await sb.rpc("end_poll",{p_poll:a.dataset.ep});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
+  if(a=t.closest("[data-xp]")){if(!confirm("이 투표 결과를 삭제할까요?"))return;r=await sb.rpc("delete_poll",{p_poll:a.dataset.xp});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
   if(a=t.closest("[data-dn]")){r=await sb.rpc("delete_notice",{p_id:a.dataset.dn});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
   if(t.closest("#pbb")){openPl=!openPl;sp="";drawEx()}});
 const cv=document.createElement("div");cv.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:none";document.body.appendChild(cv);
 let cvT=0,cvI=null;
 const cvf=sec=>(sec>=60?Math.floor(sec/60)+"분 ":"")+(sec%60)+"초";
-const cvs=document.createElement("div");cvs.style.cssText="position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-size:min(15vw,100px);font-weight:600;color:var(--mu)";cv.appendChild(cvs);
+const cvs=document.createElement("div");cvs.style.cssText="position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-size:min(15vw,100px);font-weight:600;color:var(--tx)";cv.appendChild(cvs);
 const cover=on=>{const was=cv.style.display==="block";if(on&&!was){cvT=Date.now();cvs.textContent="0초";clearInterval(cvI);cvI=setInterval(()=>{cvs.textContent=cvf(Math.round((Date.now()-cvT)/1000))},1000)}
   if(!on&&was){clearInterval(cvI);toast(cvf(Math.round((Date.now()-cvT)/1000))+" 동안 가려져 있었어요")}
   cv.style.display=on?"block":"none"};
@@ -313,13 +315,13 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden&&code)cover
 function draw(){
   const l=$("#list");if(!l)return;const now=Date.now()+off,mod=myRole()!=="user";
   msgs=msgs.filter(m=>Date.parse(m.expires_at)>now);
-  const s=(mod?"1":"0")+rxSig()+msgs.map(m=>m.id+"|"+m.name+"|"+((members[m.user_id]||{}).role||m.role||"")+"|"+m.text).join("\n");
+  const s=(mod?"1":"0")+rxSig()+msgs.map(m=>m.id+"|"+m.name+"|"+((members[m.user_id]||{}).role||m.role||"")+"|"+m.text+"|"+unread(m)).join("\n");
   if(s!==sig&&!gest){
     sig=s;const end=l.scrollHeight-l.scrollTop-l.clientHeight<80;stick=end;
     l.innerHTML=msgs.length?msgs.map(m=>{const u=imgUrl(m.text),e=Date.parse(m.expires_at),own=m.user_id===uid&&!m.tmp&&!u;
       return`<div class="m ${m.user_id===uid?"me":""}" data-mid="${m.id}"><div class="n">${esc(m.name)}${tag((members[m.user_id]||{}).role||m.role)}</div>
   ${u?`<div class="b img"><a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="사진" onload="imgLoad()"></a></div>`:`<div class="b">${bodyHtml(m.text)}</div>`}${m.tmp?"":rxHtml(m.id)}<div class="bar" data-e="${e}"></div>
-  <div class="t"><span data-e="${e}"></span>${own?` <a class="ed" data-edit="${m.id}">수정</a>`:""}${mod&&!m.tmp?` <a data-id="${m.id}">삭제</a>`:""}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
+  <div class="t">${!m.tmp&&unread(m)?`<b class="un">${unread(m)}</b> `:""}<span data-e="${e}"></span>${own?` <a class="ed" data-edit="${m.id}">수정</a>`:""}${mod&&!m.tmp?` <a data-id="${m.id}">삭제</a>`:""}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
     if(end)l.scrollTop=l.scrollHeight;
   }
   l.querySelectorAll("div.bar[data-e]").forEach(e=>e.style.width=Math.max(0,(e.dataset.e-now)/TTL*100)+"%");

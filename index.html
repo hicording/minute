@@ -21,7 +21,7 @@ p.s{color:var(--mu);margin:0;font-size:14px}
 input{font:inherit;padding:13px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--sf);color:var(--tx);width:100%;outline:none}
 button{font:inherit;border:0;border-radius:12px;padding:13px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer;flex:1}
 button.g{background:var(--sf);color:var(--tx)}button.sm{padding:6px 10px;font-size:12px;border-radius:8px;flex:none}
-.row{display:flex;gap:8px}
+.row{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--bd);gap:8px}
 header small{color:var(--mu);display:block;font-size:12px}
 #list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
@@ -99,10 +99,24 @@ function login(msg){
 async function enter(c){
   code=c;msgs=[];members={};online=new Set();bans=[];
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
-  <div class="row"><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="out">나가기</button></div></header>
+  <div class="row"><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="us"></div><div id="list"></div>
   <form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
-  $("#out").onclick=leave;
+  $("#home").onclick=()=>leave();
+  $("#del").onclick=async()=>{
+    const v=prompt("방을 삭제하면 모든 메시지와 참여자가 지워지고, 아무도 다시 들어오거나 채팅을 보낼 수 없어요. 되돌릴 수 없어요.\n\n삭제하려면 방 코드 "+code+" 를 그대로 입력하세요.");
+    if(v===null)return;
+    if(v.trim().toUpperCase()!==String(code).toUpperCase()){alert("방 코드가 달라서 취소했어요");return}
+    const{error}=await sb.rpc("delete_room",{p_code:code});
+    if(error){alert("방 삭제 실패: "+error.message);return}
+    leave("방을 삭제했어요");
+  };
+  $("#out").onclick=async()=>{
+    if(!confirm("이 방에서 완전히 나갈까요?\n내가 들어간 방 목록에서도 사라지고, 다시 들어오려면 코드를 입력해야 해요."))return;
+    const{error}=await sb.rpc("leave_room",{p_code:code});
+    if(error){alert("나가기 실패: "+error.message);return}
+    leave();
+  };
   $("#ph").onclick=()=>$("#fl").click();
   $("#fl").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)sendImg(f)};
   $("#ub").onclick=()=>{const u=$("#us");u.style.display=u.style.display==="flex"?"none":"flex"};
@@ -139,22 +153,28 @@ async function poll(force){
   if(data){const tm=msgs.filter(x=>x.tmp&&Date.now()-x.at<8000&&!data.some(d=>d.user_id===x.user_id&&d.text===x.text));msgs=data.concat(tm);draw()}
   if(!force&&pn++%3)return;
   const{data:ms}=await sb.from("members").select("*").eq("room_code",code);
-  if(ms){members={};ms.forEach(m=>members[m.user_id]=m);if(!members[uid]){leave("이 방에서 나가졌어요. 차단되었을 수 있어요.");return}if(myRole()==="admin"){const{data:bs}=await sb.from("bans").select("*").eq("room_code",code);bans=bs||[]}else bans=[];
+  if(ms){members={};ms.forEach(m=>members[m.user_id]=m);if(!members[uid]){leave("이 방에서 나가졌어요. 방이 삭제되었거나 차단되었을 수 있어요.");return}if(myRole()==="admin"){const{data:bs}=await sb.from("bans").select("*").eq("room_code",code);bans=bs||[]}else bans=[];
   head();drawUsers()}
 }
-function head(){const r=myRole();$("#rl").innerHTML=tag(r);$("#clr").style.display=r==="admin"?"":"none"}
+function head(){const r=myRole();$("#rl").innerHTML=tag(r);$("#clr").style.display=r==="admin"?"":"none";$("#out").style.display=r==="admin"?"none":"";$("#del").style.display=r==="admin"?"":"none"}
 function drawUsers(){
   const list=Object.values(members).sort((x,y)=>(online.has(y.user_id)-online.has(x.user_id))||String(x.name).localeCompare(y.name)),r=myRole();
   const on=list.filter(u=>online.has(u.user_id)).length;
   $("#ub").textContent="참여자 "+list.length;
   let h=`<div class="sys" style="align-self:flex-start">온라인 ${on}명 · 참여자 ${list.length}명</div>`;
   h+=list.map(u=>`<div class="u"><span><i class="on ${online.has(u.user_id)?"":"off"}"></i>${esc(u.name)}${tag(u.role)}${u.user_id===uid?" (나)":""}</span>
-  ${(r==="admin"&&u.role!=="admin")||(r==="sub"&&u.role==="user")?`<span class="row">${r==="admin"?`<button class="g sm" data-u="${u.user_id}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button>`:""}<button class="g sm" data-ban="${u.user_id}" style="color:#e5484d">차단</button></span>`:""}</div>`).join("");
+  ${(r==="admin"&&u.role!=="admin")||(r==="sub"&&u.role==="user")?`<span class="row">${r==="admin"?`<button class="g sm" data-u="${u.user_id}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button><button class="g sm" data-host="${u.user_id}">방장 넘기기</button>`:""}<button class="g sm" data-ban="${u.user_id}" style="color:#e5484d">차단</button></span>`:""}</div>`).join("");
   if(r==="admin"&&bans.length)h+=`<div class="sys" style="align-self:flex-start;margin-top:6px">차단됨 ${bans.length}명</div>`+bans.map(x=>`<div class="u"><span>${esc(x.name||"알 수 없음")}</span><button class="g sm" data-unban="${x.id}">차단 해제</button></div>`).join("");
   $("#us").innerHTML=h;
   document.querySelectorAll("[data-u]").forEach(x=>x.onclick=async()=>{x.disabled=true;
     const{error}=await sb.rpc("set_role",{p_code:code,p_target:x.dataset.u,p_role:x.dataset.r});
     if(error){alert("변경 실패: "+error.message);x.disabled=false}else poll(true)});
+  document.querySelectorAll("[data-host]").forEach(x=>x.onclick=async()=>{
+    const n=(members[x.dataset.host]||{}).name||"이 사람";
+    if(!confirm(n+"님에게 방장을 넘길까요?\n나는 부관리자가 되고, 방 삭제와 부관리자 지정은 새 방장만 할 수 있어요."))return;
+    x.disabled=true;
+    const{error}=await sb.rpc("transfer_host",{p_code:code,p_target:x.dataset.host});
+    if(error){alert("넘기기 실패: "+error.message);x.disabled=false}else poll(true)});
   document.querySelectorAll("[data-ban]").forEach(x=>x.onclick=async()=>{if(!confirm("이 기기를 이 방에서 차단할까요? 다시 입장할 수 없어요."))return;
     const{error}=await sb.rpc("ban_user",{p_code:code,p_target:x.dataset.ban});if(error)alert("차단 실패: "+error.message);else poll(true)});
   document.querySelectorAll("[data-unban]").forEach(x=>x.onclick=async()=>{

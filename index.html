@@ -107,9 +107,9 @@ async function enter(c){
     const v=prompt("방을 삭제하면 모든 메시지와 참여자가 지워지고, 아무도 다시 들어오거나 채팅을 보낼 수 없어요. 되돌릴 수 없어요.\n\n삭제하려면 방 코드 "+code+" 를 그대로 입력하세요.");
     if(v===null)return;
     if(v.trim().toUpperCase()!==String(code).toUpperCase()){alert("방 코드가 달라서 취소했어요");return}
-    const{error}=await sb.rpc("delete_room",{p_code:code});
+    const{data,error}=await sb.rpc("delete_room",{p_code:code});
     if(error){alert("방 삭제 실패: "+error.message);return}
-    leave("방을 삭제했어요");
+    leave(data===false?"방을 닫았어요. 이 코드는 다시 만들 수 없어요":"방을 삭제했어요. 같은 코드로 다시 만들 수 있어요");
   };
   $("#out").onclick=async()=>{
     if(!confirm("이 방에서 완전히 나갈까요?\n내가 들어간 방 목록에서도 사라지고, 다시 들어오려면 코드를 입력해야 해요."))return;

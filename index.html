@@ -300,7 +300,7 @@ document.addEventListener("click",async e=>{const t=e.target;let a,r;
   if(a=t.closest("[data-ep]")){if(!confirm("이 투표를 끝낼까요?"))return;r=await sb.rpc("end_poll",{p_poll:a.dataset.ep});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
   if(a=t.closest("[data-dn]")){r=await sb.rpc("delete_notice",{p_id:a.dataset.dn});if(r.error)alert("실패: "+r.error.message);else poll(true);return}
   if(t.closest("#pbb")){openPl=!openPl;sp="";drawEx()}});
-const cv=document.createElement("div");cv.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:none;color:var(--mu);text-align:center;padding-top:42vh;font-size:15px";cv.innerHTML="일시정지<br><small style=\"font-size:12px\">화면을 누르면 돌아가요</small>";document.body.appendChild(cv);
+const cv=document.createElement("div");cv.style.cssText="position:fixed;inset:0;background:var(--bg);z-index:30;display:none";document.body.appendChild(cv);
 const cover=on=>{cv.style.display=on?"block":"none"};
 cv.onclick=()=>cover(0);
 document.addEventListener("keydown",e=>{if(e.altKey&&e.code==="KeyV"){e.preventDefault();cover(cv.style.display==="none")}});

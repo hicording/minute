@@ -123,7 +123,7 @@ function login(msg){
 async function enter(c){
   code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;sn=sp="";openPl=false;
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
-  <div class="row"><button class="g sm" id="bn" title="알림">🔕</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
+  <div class="row"><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="nt"></div><div id="pb" style="display:none"></div><div id="pl" style="display:none"></div><div id="us"></div><div id="list"></div>
   <div id="rp"></div><form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><button type="button" class="g" id="pv" aria-label="투표 만들기">📊</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
   $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);$("#bn").onclick=toggleNtf;ntfIcon();bindGest();$("#pv").onclick=pollModal;setRep(null);
@@ -251,20 +251,20 @@ async function notice(m){if(imgUrl(m.text)){alert("사진은 공지로 올릴 �
 async function copyTxt(t){try{await navigator.clipboard.writeText(t)}catch(_){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(_){}a.remove()}toast("복사했어요")}
 let picking=0,nseen=null;
 const ntfOn=()=>{try{return localStorage.getItem("ntf")==="1"&&window.Notification&&Notification.permission==="granted"}catch(_){return false}};
-function ntfIcon(){const b=$("#bn");if(b)b.textContent=ntfOn()?"🔔":"🔕"}
+function ntfIcon(){const b=$("#bn");if(b)b.textContent="⚙️"}
 const lsg=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v==="1"}catch(_){return d}};
 const lss=(k,v)=>{try{localStorage.setItem(k,v?"1":"0")}catch(_){}};
 function toggleNtf(){const d=document.createElement("div");d.id="md";
-  d.innerHTML=`<div class="box"><b>🔔 알림 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><p class="s">앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p><div class="row"><button id="nx">닫기</button></div></div>`;
+  d.innerHTML=`<div class="box"><b>⚙️ 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><label class="ck"><input type="checkbox" id="n4"> 나갔다 오면 자동 가림막</label><p class="s">알림은 앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p><div class="row"><button id="nx">확인</button></div></div>`;
   document.body.appendChild(d);
-  const c=$("#n1");c.checked=ntfOn();$("#n2").checked=lsg("nsnd",false);$("#n3").checked=lsg("nprv",true);
+  const c=$("#n1");c.checked=ntfOn();$("#n2").checked=lsg("nsnd",false);$("#n3").checked=lsg("nprv",true);$("#n4").checked=lsg("nauto",false);
   c.onchange=async()=>{if(!c.checked){lss("ntf",0);ntfIcon();return}
     if(!window.Notification){alert("이 브라우저는 알림을 지원하지 않아요 (아이폰은 홈 화면에 추가한 뒤 가능해요)");c.checked=false;return}
     const p=Notification.permission==="granted"?"granted":await Notification.requestPermission();
     if(p!=="granted"){alert("알림 권한이 허용되지 않았어요. 브라우저 설정에서 허용해 주세요");c.checked=false;return}
     lss("ntf",1);ntfIcon()};
   $("#n2").onchange=e=>lss("nsnd",e.target.checked);$("#n3").onchange=e=>lss("nprv",e.target.checked);
-  $("#nx").onclick=()=>d.remove()}
+  $("#n4").onchange=e=>lss("nauto",e.target.checked);$("#nx").onclick=()=>d.remove()}
 async function showNtf(t,b){const snd=lsg("nsnd",false),o={body:b,tag:"minute",silent:!snd,renotify:snd,icon:new URL("icon.png",location.href).href,badge:new URL("badge.png",location.href).href};try{const r=await navigator.serviceWorker.getRegistration();if(r){await r.showNotification(t,o);return}}catch(_){}try{new Notification(t,o)}catch(_){}}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 function notifyNew(){const ids=new Set(msgs.map(m=>String(m.id)));if(nseen===null){nseen=ids;return}
@@ -337,7 +337,7 @@ const cover=on=>{const was=cv.style.display==="block";if(on&&!was){cvT=Date.now(
   cv.style.display=on?"block":"none"};
 cv.onclick=e=>{const k=72,x=e.clientX,y=e.clientY,W=innerWidth,H=innerHeight;if((x<k||x>W-k)&&(y<k||y>H-k))cover(0)};
 document.addEventListener("keydown",e=>{if(e.altKey&&e.code==="KeyV"){e.preventDefault();cover(cv.style.display==="none")}});
-document.addEventListener("visibilitychange",()=>{if(document.hidden){if(code&&!picking)cover(1)}else if(picking)setTimeout(()=>picking=0,4000)});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){if(code&&!picking&&lsg("nauto",false))cover(1)}else if(picking)setTimeout(()=>picking=0,4000)});
 function draw(){
   const l=$("#list");if(!l)return;const now=Date.now()+off,mod=myRole()!=="user";
   msgs=msgs.filter(m=>Date.parse(m.expires_at)>now);notifyNew();

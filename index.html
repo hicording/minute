@@ -93,6 +93,13 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ac);heig
 .dmn{display:flex;flex-direction:column;min-width:0;align-items:flex-start}.dmn small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
 .bdg{background:#e5484d;color:#fff;border-radius:10px;font-size:11px;font-weight:700;padding:1px 7px;flex:none}
 #dmrows{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto}
+#app>header{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px}
+#app>header>div:first-child{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
+#app>header small{display:inline;margin:0}
+#app>header .row{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;gap:6px;scrollbar-width:none}
+#app>header .row::-webkit-scrollbar{display:none}
+#app>header .row button{flex:none;padding:8px 12px;font-size:13px;white-space:nowrap}
+.tag{white-space:nowrap}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>

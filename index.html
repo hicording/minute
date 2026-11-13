@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://drqjyvhgztnquadkpcyy.supabase.co; connect-src 'self' https://drqjyvhgztnquadkpcyy.supabase.co wss://drqjyvhgztnquadkpcyy.supabase.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://drqjyvhgztnquadkpcyy.supabase.co; connect-src 'self' https://drqjyvhgztnquadkpcyy.supabase.co wss://drqjyvhgztnquadkpcyy.supabase.co https://open.neis.go.kr; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex,nofollow">
 
@@ -106,6 +106,7 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ac);heig
 // ▼ Supabase > Project Settings > API 에서 복사해 붙여넣기
 const SUPABASE_URL="https://drqjyvhgztnquadkpcyy.supabase.co";
 const SUPABASE_KEY="sb_publishable_kCn-7ZjtLnMQ0WJwXdwZcQ_Dct1mqvr";
+const NEIS_KEY="62645a242dbd443898c42e95650e1122"; // open.neis.go.kr 에서 발급받은 급식 API 인증키
 
 let TTL=60000;const TS=[10,30,60,300,1800,3600];
 const fmtS=x=>{const h=Math.floor(x/3600),m=Math.floor(x%3600/60),c=x%60;return[h?h+"시간":"",m?m+"분":"",c?c+"초":""].filter(Boolean).join(" ")};
@@ -209,10 +210,10 @@ function login(msg){
 async function enter(c){
   if(isDm(c))dmSeenSet(c,Date.now()+off);code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;sn=sp="";openPl=false;
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small id="rcd">${isDm(c)?"💬 1:1 채팅":"코드 "+esc(c)}</small></div>
-  <div class="row"><button class="g sm" id="dmb" title="1:1 채팅">💬</button><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
+  <div class="row"><button class="g sm" id="dmb" title="1:1 채팅">💬</button><button class="g sm" id="mealb" title="급식표">🍚</button><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="nt"></div><div id="pb" style="display:none"></div><div id="pl" style="display:none"></div><div id="us"></div><div id="list"></div>
   <div id="rp"></div><form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><button type="button" class="g" id="pv" aria-label="투표 만들기">📊</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
-  $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);$("#bn").onclick=toggleNtf;ntfIcon();bindGest();$("#pv").onclick=pollModal;$("#dmb").onclick=dmList;setRep(null);
+  $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);$("#bn").onclick=toggleNtf;ntfIcon();bindGest();$("#pv").onclick=pollModal;$("#dmb").onclick=dmList;$("#mealb").onclick=mealModal;setRep(null);
   $("#del").onclick=async()=>{
     const v=prompt("방을 삭제하면 모든 메시지와 참여자가 지워지고, 아무도 다시 들어오거나 채팅을 보낼 수 없어요. 되돌릴 수 없어요.\n\n삭제하려면 방 코드 "+code+" 를 그대로 입력하세요.");
     if(v===null)return;
@@ -356,6 +357,43 @@ const ntfOn=()=>{try{return localStorage.getItem("ntf")==="1"&&window.Notificati
 function ntfIcon(){const b=$("#bn");if(b)b.textContent="⚙️"}
 const lsg=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v==="1"}catch(_){return d}};
 const lss=(k,v)=>{try{localStorage.setItem(k,v?"1":"0")}catch(_){}};
+const MK="m_school",DN=["일","월","화","수","목","금","토"];
+const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+const nq=(p,q)=>fetch("https://open.neis.go.kr/hub/"+p+"?"+new URLSearchParams({KEY:NEIS_KEY,Type:"json",...q})).then(r=>r.json());
+function mealModal(){
+  if(!NEIS_KEY){alert("index.html 위쪽의 NEIS_KEY에 급식 API 인증키를 넣어주세요");return}
+  let sc=null;try{sc=JSON.parse(st.get(MK)||"null")}catch{}
+  if(!(sc&&typeof sc.a==="string"&&typeof sc.c==="string"&&typeof sc.n==="string"))sc=null;
+  let day=new Date(),busy=0;
+  const d=document.createElement("div");d.id="md";d.onclick=e=>{if(e.target===d)d.remove()};
+  d.innerHTML=`<div class="box"><b>🍚 급식표</b><div style="display:flex;gap:6px"><input id="ms" placeholder="학교 이름 검색" maxlength="30" style="flex:1;min-width:0"><button class="g sm" id="msb">검색</button></div><div id="msl"></div><div id="mb"></div><div class="row"><button id="mx">닫기</button></div></div>`;
+  document.body.appendChild(d);
+  $("#mx").onclick=()=>d.remove();
+  async function load(){
+    const my=++busy,b=$("#mb");
+    if(!sc){b.innerHTML='<p class="s">학교를 검색해서 선택해 주세요</p>';return}
+    b.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><button class="g sm" id="mp">◀</button><div style="text-align:center;font-size:14px"><b>${esc(sc.n)}</b><br><small>${day.getMonth()+1}월 ${day.getDate()}일 (${DN[day.getDay()]})</small></div><button class="g sm" id="mn">▶</button></div><p class="s" id="mm">불러오는 중…</p>`;
+    $("#mp").onclick=()=>{day.setDate(day.getDate()-1);load()};$("#mn").onclick=()=>{day.setDate(day.getDate()+1);load()};
+    try{
+      const j=await nq("mealServiceDietInfo",{ATPT_OFCDC_SC_CODE:sc.a,SD_SCHUL_CODE:sc.c,MLSV_YMD:ymd(day)});
+      const m=$("#mm");if(my!==busy||!m)return;
+      const rows=j.mealServiceDietInfo&&j.mealServiceDietInfo[1]&&j.mealServiceDietInfo[1].row;
+      if(rows){m.className="";m.innerHTML=rows.map(r=>`<div style="margin-top:10px"><b>${esc(r.MMEAL_SC_NM||"")}</b> <small style="color:var(--mu)">${esc(r.CAL_INFO||"")}</small><div style="font-size:14px;line-height:1.7">${String(r.DDISH_NM||"").split(/<br\s*\/?>/i).map(x=>esc(x.trim())).filter(Boolean).join("<br>")}</div></div>`).join("")}
+      else{const c=j.RESULT&&j.RESULT.CODE;m.textContent=c==="INFO-200"||!c?"이 날은 급식 정보가 없어요":c==="ERROR-290"?"API 인증키가 올바르지 않아요":"불러오지 못했어요 ("+c+")"}
+    }catch(_){const m=$("#mm");if(my===busy&&m)m.textContent="불러오지 못했어요. 잠시 후 다시 시도해 주세요"}
+  }
+  $("#msb").onclick=async()=>{
+    const q=$("#ms").value.trim(),l=$("#msl");if(!q)return;l.innerHTML='<p class="s">검색 중…</p>';
+    try{
+      const j=await nq("schoolInfo",{SCHUL_NM:q,pSize:8});
+      const rows=(j.schoolInfo&&j.schoolInfo[1]&&j.schoolInfo[1].row)||[];
+      l.innerHTML=rows.length?rows.map((r,i)=>`<button class="g rm" data-si="${i}" style="width:100%;margin-top:4px"><span>${esc(r.SCHUL_NM)}</span><small style="max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.ORG_RDNMA||r.ATPT_OFCDC_SC_NM||"")}</small></button>`).join(""):'<p class="s">학교를 찾을 수 없어요</p>';
+      l.querySelectorAll("[data-si]").forEach(x=>x.onclick=()=>{const r=rows[+x.dataset.si];sc={a:String(r.ATPT_OFCDC_SC_CODE),c:String(r.SD_SCHUL_CODE),n:String(r.SCHUL_NM)};st.set(MK,JSON.stringify(sc));l.innerHTML="";day=new Date();load()});
+    }catch(_){l.innerHTML='<p class="s">검색에 실패했어요</p>'}
+  };
+  $("#ms").onkeydown=e=>{if(e.key==="Enter")$("#msb").click()};
+  load();
+}
 function toggleNtf(){const d=document.createElement("div");d.id="md";
   d.innerHTML=`<div class="box"><b>⚙️ 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><label class="ck"><input type="checkbox" id="n4"> 나갔다 오면 자동 가림막</label><p class="s">알림은 앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p><button class="g" id="mpf">👤 내 프로필 편집</button>${myRole()==="admin"?`<hr class="dv"><b>⏱ 메시지 사라지는 시간 (방장)</b><div id="tlv" style="font-size:14px;font-weight:600"></div><input type="range" id="tl" min="0" max="${TS.length-1}" step="1" value="${tIdx(Math.round(TTL/1000))}"><div class="tls"><span>${fmtS(TS[0])}</span><span>${fmtS(TS[TS.length-1])}</span></div>`:""}<div class="row"><button id="nx">확인</button></div></div>`;
   document.body.appendChild(d);

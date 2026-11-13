@@ -77,29 +77,6 @@ select{font:inherit;padding:13px 14px;border:1px solid var(--bd);border-radius:1
 #po{display:flex;flex-direction:column;gap:6px}
 .ck{display:flex;align-items:center;gap:10px;font-size:14px}.ck input{flex:none;width:20px;height:20px;padding:0;margin:0}.un{color:#f5a623;font-weight:700;font-size:12px;margin-right:2px}.rq[data-rt]{cursor:pointer}.po.end{cursor:default}.po.win{border-color:#2fb344;font-weight:700}.po.win .pf{background:#2fb344;opacity:.25}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
 
-/* ---- 카톡 스타일 ---- */
-#list{background:var(--kbg);gap:6px}
-.m{align-self:stretch;max-width:100%;display:flex;align-items:flex-start;gap:8px;position:relative}
-.m.me{flex-direction:row-reverse}
-.m.g{margin-top:-3px}
-.pa{width:40px;flex:none}
-.c{display:flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:calc(100% - 48px)}
-.m.me .c{align-items:flex-end;max-width:80%}
-.c .n{color:var(--kn);font-size:12px;margin:0 2px 4px}
-.bw{display:flex;align-items:flex-end;gap:6px;max-width:100%}
-.m.me .bw{flex-direction:row-reverse}
-.bb{display:flex;flex-direction:column;min-width:0}
-.bw .t{flex:none;flex-direction:column;align-items:flex-start;gap:1px;margin:0 0 2px;max-width:56px;font-size:10px;line-height:1.3;color:var(--kn)}
-.m.me .bw .t{align-items:flex-end;text-align:right}
-.bw .t a{padding:3px 0;margin:0}
-.m .b{background:var(--ko);color:var(--tx);border-radius:14px;padding:8px 12px}
-.m.f .b{border-top-left-radius:3px}
-.m.me .b{background:var(--km);color:var(--kt)}
-.m.me.f .b{border-top-left-radius:14px;border-top-right-radius:3px}
-.m .b.img{padding:3px}
-.m .b.img img{max-width:min(240px,62vw)}
-.bar{margin:3px 6px 0;background:var(--kn)}
-#list .sys{color:var(--kn)}
 .av.lg{width:40px;height:40px;line-height:40px;font-size:22px;margin:0;vertical-align:top}
 .av.ltr{color:#fff;font-weight:700;font-size:15px}.av.lg.ltr{font-size:18px}
 #us{gap:10px}#us .u{gap:8px}
@@ -108,6 +85,14 @@ select{font:inherit;padding:13px 14px;border:1px solid var(--bd);border-radius:1
 .aw .on{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;margin:0;border:2px solid var(--bg)}
 input[type=range]{padding:0;border:0;background:none;accent-color:var(--ac);height:32px}
 .tls{display:flex;justify-content:space-between;font-size:11px;color:var(--mu)}
+.av.xl{width:84px;height:84px;line-height:84px;font-size:46px;margin:0}.av.xl.ltr{font-size:36px}
+#dm{position:fixed;left:0;right:0;top:0;bottom:0;z-index:12;background:var(--bg);display:flex;flex-direction:column;max-width:600px;margin:0 auto;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+#dml{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px;display:flex;flex-direction:column;gap:8px}
+#dml .sys{color:var(--mu);text-align:center;margin:auto}
+#dmh{display:flex;align-items:center;gap:8px;min-width:0}
+.dmn{display:flex;flex-direction:column;min-width:0;align-items:flex-start}.dmn small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.bdg{background:#e5484d;color:#fff;border-radius:10px;font-size:11px;font-weight:700;padding:1px 7px;flex:none}
+#dmrows{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>
@@ -115,7 +100,7 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ac);heig
 const SUPABASE_URL="https://drqjyvhgztnquadkpcyy.supabase.co";
 const SUPABASE_KEY="sb_publishable_kCn-7ZjtLnMQ0WJwXdwZcQ_Dct1mqvr";
 
-let TTL=60000;const TS=[10,20,30,45,60,90,120,180,300,600,900,1800,2700,3600];
+let TTL=60000;const TS=[10,30,60,300,1800,3600];
 const fmtS=x=>{const h=Math.floor(x/3600),m=Math.floor(x%3600/60),c=x%60;return[h?h+"시간":"",m?m+"분":"",c?c+"초":""].filter(Boolean).join(" ")};
 const tIdx=x=>{let b=0;TS.forEach((v,i)=>{if(Math.abs(v-x)<Math.abs(TS[b]-x))b=i});return b};const $=s=>document.querySelector(s),app=$("#app");
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -130,6 +115,7 @@ const PHRE=/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,12000}$/;
 const okPhoto=x=>typeof x==="string"&&PHRE.test(x);
 const curPf=()=>{const a=pfGet();return a.find(p=>p.id===st.get(PSEL))||a[0]||null};
 const avc=n=>{let h=0;for(const c of String(n))h=(h*31+c.charCodeAt(0))%360;return`hsl(${h},45%,50%)`};
+const phs=x=>{x=x||"";return x.length+x.slice(200,230)};
 const avHtml=(photo,icon,name,cls)=>{const k=cls?" "+cls:"";return okPhoto(photo)?`<img class="av${k}" src="${esc(photo)}" alt="">`:(icon?`<span class="av${k}">${esc(String(icon).slice(0,8))}</span>`:(name?`<span class="av ltr${k}" style="background:${avc(name)}">${esc([...String(name)][0]||"?")}</span>`:""))};
 const av=(u,cls,nm)=>{const m=members[u]||{};let ph=m.photo,ic=m.icon;if(u===uid&&!okPhoto(ph)&&!ic){const P=curPf();if(P){ph=P.photo;ic=P.icon}}return avHtml(ph,ic,m.name||nm,cls)};
 function cropAv(f){return new Promise((ok,no)=>{const u=URL.createObjectURL(f),i=new Image();
@@ -170,7 +156,7 @@ function pfEdit(p){
     if(!n){$("#pe").textContent="이름을 입력해 주세요";return}
     let a=pfGet();const np={id:p?p.id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:n,icon:S.icon||"🙂",photo:S.photo};
     if(p)a=a.map(x=>x.id===p.id?np:x);else{if(a.length>=3){$("#pe").textContent="프로필은 3개까지 만들 수 있어요";return}a.push(np)}
-    pfSet(a);st.set(PSEL,np.id);d.remove();drawPf()}}
+    pfSet(a);st.set(PSEL,np.id);d.remove();drawPf();syncProfile(np)}}
 function dev(){let d=st.get("m_dev");
   if(!d){const m=document.cookie.match(/(?:^|; )m_dev=([^;]+)/);d=m?m[1]:""}
   if(!/^[\w-]{16,64}$/.test(d))d="";
@@ -213,12 +199,12 @@ function login(msg){
 }
 
 async function enter(c){
-  code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;sn=sp="";openPl=false;
+  dmClose();dmTh=[];dmPrev=0;code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;sn=sp="";openPl=false;
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
-  <div class="row"><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
+  <div class="row"><button class="g sm" id="dmb" title="1:1 채팅">💬</button><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="nt"></div><div id="pb" style="display:none"></div><div id="pl" style="display:none"></div><div id="us"></div><div id="list"></div>
   <div id="rp"></div><form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><button type="button" class="g" id="pv" aria-label="투표 만들기">📊</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
-  $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);$("#bn").onclick=toggleNtf;ntfIcon();bindGest();$("#pv").onclick=pollModal;setRep(null);
+  $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);$("#bn").onclick=toggleNtf;ntfIcon();bindGest();$("#pv").onclick=pollModal;$("#dmb").onclick=dmList;setRep(null);
   $("#del").onclick=async()=>{
     const v=prompt("방을 삭제하면 모든 메시지와 참여자가 지워지고, 아무도 다시 들어오거나 채팅을 보낼 수 없어요. 되돌릴 수 없어요.\n\n삭제하려면 방 코드 "+code+" 를 그대로 입력하세요.");
     if(v===null)return;
@@ -261,9 +247,9 @@ async function enter(c){
       if(p.new&&p.new.user_id){members[p.new.user_id]=Object.assign({},members[p.new.user_id]||{},p.new);head();drawUsers();draw()}})
    .on("presence",{event:"sync"},()=>{online=new Set(Object.keys(ch.presenceState()));drawUsers()})
    .subscribe(s=>{if(s==="SUBSCRIBED")ch.track({uid})});
-  t1=setInterval(draw,1000);t2=setInterval(()=>{sb.rpc("purge_expired");sb.rpc("purge_extras")},10000);t3=setInterval(poll,2000);poll();
+  t1=setInterval(draw,1000);t2=setInterval(()=>{sb.rpc("purge_expired");sb.rpc("purge_extras");if(!dmBroken)sb.rpc("dm_purge")},10000);t3=setInterval(poll,2000);poll();
 }
-function leave(m){if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;code="";login(typeof m==="string"?m:"")}
+function leave(m){dmClose();dmTh=[];if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;code="";login(typeof m==="string"?m:"")}
 async function poll(force){
   if(!code)return;
   const now=new Date(Date.now()+off).toISOString();
@@ -271,6 +257,7 @@ async function poll(force){
   if(error){console.error(error);return}
   if(data){const tm=msgs.filter(x=>x.tmp&&Date.now()-x.at<8000&&!data.some(d=>d.user_id===x.user_id&&d.text===x.text));msgs=data.concat(tm);draw()}
   {const{data:xd,error:xe}=await sb.rpc("room_extras",{p_code:code,p_seen:!document.hidden&&cv.style.display!=="block"});if(!xe&&xd){ex=xd;draw()}}
+  await dmPollTh();
   if(!force&&!(document.hidden||cv.style.display==="block")&&pn++%3)return;
   const{data:ms}=await sb.from("members").select("user_id,room_code,name,role,icon,photo").eq("room_code",code);
   {const{data:tt}=await sb.rpc("get_room_ttl",{p_code:code});if(typeof tt==="number"&&tt>0)TTL=tt*1000}
@@ -283,7 +270,7 @@ function drawUsers(){
   const on=list.filter(u=>online.has(u.user_id)).length;
   $("#ub").textContent="참여자 "+list.length;
   let h=`<div class="sys" style="align-self:flex-start">온라인 ${on}명 · 참여자 ${list.length}명</div>`;
-  h+=list.map(u=>`<div class="u"><span class="uw"><span class="aw">${av(u.user_id,"lg",u.name)}<i class="on ${online.has(u.user_id)?"":"off"}"></i></span><span>${esc(u.name)}${tag(u.role)}${u.user_id===uid?" (나)":""}</span></span>
+  h+=list.map(u=>`<div class="u"><span class="uw" data-pc="${esc(u.user_id)}" style="cursor:pointer"><span class="aw">${av(u.user_id,"lg",u.name)}<i class="on ${online.has(u.user_id)?"":"off"}"></i></span><span>${esc(u.name)}${tag(u.role)}${u.user_id===uid?" (나)":""}</span></span>
   ${(r==="admin"&&u.role!=="admin")||(r==="sub"&&u.role==="user")?`<span class="row">${r==="admin"?`<button class="g sm" data-u="${esc(u.user_id)}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button><button class="g sm" data-host="${esc(u.user_id)}">방장 넘기기</button>`:""}<button class="g sm" data-kick="${esc(u.user_id)}" style="color:#e5484d">강퇴</button><button class="g sm" data-ban="${esc(u.user_id)}" style="color:#e5484d">차단</button></span>`:""}</div>`).join("");
   if(r==="admin"&&bans.length)h+=`<div class="sys" style="align-self:flex-start;margin-top:6px">차단됨 ${bans.length}명</div>`+bans.map(x=>`<div class="u"><span>${esc(x.name||"알 수 없음")}</span><button class="g sm" data-unban="${esc(x.id)}">차단 해제</button></div>`).join("");
   $("#us").innerHTML=h;
@@ -362,7 +349,7 @@ function ntfIcon(){const b=$("#bn");if(b)b.textContent="⚙️"}
 const lsg=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v==="1"}catch(_){return d}};
 const lss=(k,v)=>{try{localStorage.setItem(k,v?"1":"0")}catch(_){}};
 function toggleNtf(){const d=document.createElement("div");d.id="md";
-  d.innerHTML=`<div class="box"><b>⚙️ 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><label class="ck"><input type="checkbox" id="n4"> 나갔다 오면 자동 가림막</label><p class="s">알림은 앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p>${myRole()==="admin"?`<hr class="dv"><b>⏱ 메시지 사라지는 시간 (방장)</b><div id="tlv" style="font-size:14px;font-weight:600"></div><input type="range" id="tl" min="0" max="${TS.length-1}" step="1" value="${tIdx(Math.round(TTL/1000))}"><div class="tls"><span>${fmtS(TS[0])}</span><span>${fmtS(TS[TS.length-1])}</span></div>`:""}<div class="row"><button id="nx">확인</button></div></div>`;
+  d.innerHTML=`<div class="box"><b>⚙️ 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><label class="ck"><input type="checkbox" id="n4"> 나갔다 오면 자동 가림막</label><p class="s">알림은 앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p><button class="g" id="mpf">👤 내 프로필 편집</button>${myRole()==="admin"?`<hr class="dv"><b>⏱ 메시지 사라지는 시간 (방장)</b><div id="tlv" style="font-size:14px;font-weight:600"></div><input type="range" id="tl" min="0" max="${TS.length-1}" step="1" value="${tIdx(Math.round(TTL/1000))}"><div class="tls"><span>${fmtS(TS[0])}</span><span>${fmtS(TS[TS.length-1])}</span></div>`:""}<div class="row"><button id="nx">확인</button></div></div>`;
   document.body.appendChild(d);
   const c=$("#n1");c.checked=ntfOn();$("#n2").checked=lsg("nsnd",false);$("#n3").checked=lsg("nprv",false);$("#n4").checked=lsg("nauto",false);
   c.onchange=async()=>{if(!c.checked){lss("ntf",0);ntfIcon();return}
@@ -371,7 +358,7 @@ function toggleNtf(){const d=document.createElement("div");d.id="md";
     if(p!=="granted"){alert("알림 권한이 허용되지 않았어요. 브라우저 설정에서 허용해 주세요");c.checked=false;return}
     lss("ntf",1);ntfIcon()};
   $("#n2").onchange=e=>lss("nsnd",e.target.checked);$("#n3").onchange=e=>lss("nprv",e.target.checked);
-  $("#n4").onchange=e=>lss("nauto",e.target.checked);$("#nx").onclick=()=>d.remove();
+  $("#n4").onchange=e=>lss("nauto",e.target.checked);$("#nx").onclick=()=>d.remove();$("#mpf").onclick=()=>pfEdit(curPf());
   const tl=$("#tl");if(tl){const sh=()=>{$("#tlv").textContent=fmtS(TS[+tl.value])+" 뒤에 사라져요"};sh();tl.oninput=sh;tl.onchange=async()=>{
     const secs=TS[+tl.value];const{error}=await sb.rpc("set_room_ttl",{p_code:code,p_secs:secs});
     if(error){alert("변경 실패: "+error.message);tl.value=String(tIdx(Math.round(TTL/1000)));sh()}
@@ -452,13 +439,13 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden){if(code&&!
 function draw(){
   const l=$("#list");if(!l)return;const now=Date.now()+off,mod=myRole()!=="user";
   msgs=msgs.filter(m=>Date.parse(m.expires_at)>now);notifyNew();
-  const s=(mod?"1":"0")+rxSig()+msgs.map(m=>m.id+"|"+m.name+"|"+((members[m.user_id]||{}).role||m.role||"")+"|"+m.text+"|"+((members[m.user_id]||{}).icon||"")+"|"+((members[m.user_id]||{}).photo||"").length+"|"+unread(m)).join("\n");
+  const s=(mod?"1":"0")+rxSig()+msgs.map(m=>m.id+"|"+((members[m.user_id]||{}).name||m.name)+"|"+((members[m.user_id]||{}).role||m.role||"")+"|"+m.text+"|"+((members[m.user_id]||{}).icon||"")+"|"+phs((members[m.user_id]||{}).photo)+"|"+unread(m)).join("\n");
   if(s!==sig&&!gest){
     sig=s;const end=l.scrollHeight-l.scrollTop-l.clientHeight<80;stick=end;
-    l.innerHTML=msgs.length?msgs.map((m,i)=>{const pv=msgs[i-1],tsOf=x=>x.created_at?Date.parse(x.created_at):(x.at||0),me=m.user_id===uid,first=!pv||pv.user_id!==m.user_id||Math.abs(tsOf(m)-tsOf(pv))>60000,u=imgUrl(m.text),e=Date.parse(m.expires_at),own=m.user_id===uid&&!m.tmp&&!u;
-      return`<div class="m ${me?"me":""}${first?" f":" g"}" data-mid="${esc(m.id)}">${me?"":`<div class="pa">${first?av(m.user_id,"lg",m.name):""}</div>`}<div class="c">${!me&&first?`<div class="n">${esc(m.name)}${tag((members[m.user_id]||{}).role||m.role)}</div>`:""}
-  <div class="bw"><div class="bb">${u?`<div class="b img"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img src="${esc(u)}" alt="사진" referrerpolicy="no-referrer"></a></div>`:`<div class="b">${bodyHtml(m.text)}</div>`}<div class="bar" data-e="${e}"></div></div>
-  <div class="t">${!m.tmp&&unread(m)?`<b class="un">${unread(m)}</b> `:""}<span data-e="${e}"></span>${own?` <a class="ed" data-edit="${esc(m.id)}">수정</a>`:""}${mod&&!m.tmp?` <a data-id="${esc(m.id)}">삭제</a>`:""}</div></div>${m.tmp?"":rxHtml(m.id)}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
+    l.innerHTML=msgs.length?msgs.map(m=>{const u=imgUrl(m.text),e=Date.parse(m.expires_at),own=m.user_id===uid&&!m.tmp&&!u;
+      return`<div class="m ${m.user_id===uid?"me":""}" data-mid="${esc(m.id)}"><div class="n" data-pu="${esc(m.user_id)}">${av(m.user_id,"",m.name)}${esc((members[m.user_id]||{}).name||m.name)}${tag((members[m.user_id]||{}).role||m.role)}</div>
+  ${u?`<div class="b img"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img src="${esc(u)}" alt="사진" referrerpolicy="no-referrer"></a></div>`:`<div class="b">${bodyHtml(m.text)}</div>`}${m.tmp?"":rxHtml(m.id)}<div class="bar" data-e="${e}"></div>
+  <div class="t">${!m.tmp&&unread(m)?`<b class="un">${unread(m)}</b> `:""}<span data-e="${e}"></span>${own?` <a class="ed" data-edit="${esc(m.id)}">수정</a>`:""}${mod&&!m.tmp?` <a data-id="${esc(m.id)}">삭제</a>`:""}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
     if(end)l.scrollTop=l.scrollHeight;
   }
   l.querySelectorAll("div.bar[data-e]").forEach(e=>e.style.width=Math.max(0,(e.dataset.e-now)/TTL*100)+"%");
@@ -485,6 +472,96 @@ document.addEventListener("click",async e=>{
   if(error){alert("삭제 실패: "+error.message);return}
   msgs=msgs.filter(m=>String(m.id)!==String(id));draw();
 });
+
+/* ===== 프로필 실시간 반영 ===== */
+async function syncProfile(np){
+  if(!sb)return;
+  try{
+    if(!uid){const{data:{session}}=await sb.auth.getSession();if(!session)return;uid=session.user.id}
+    const ph=okPhoto(np.photo)?np.photo:null,ic=np.icon||null;
+    const r=await sb.from("members").update({icon:ic,photo:ph}).eq("user_id",uid).select("room_code");
+    if(r.error)throw r.error;
+    if(code&&r.data&&!r.data.length)toast("서버가 프로필 변경을 막고 있어요");
+    if(code&&members[uid]){members[uid].icon=ic;members[uid].photo=ph;
+      if(members[uid].name!==np.name){
+        const r2=await sb.from("members").update({name:np.name}).eq("room_code",code).eq("user_id",uid).select("room_code");
+        if(r2.error||!r2.data||!r2.data.length)toast("이름은 바꾸지 못했어요 (같은 이름이 있을 수 있어요)");else members[uid].name=np.name}
+      sig="";head();drawUsers();draw();poll(true)}
+  }catch(e){toast("프로필 반영 실패: "+(e.message||e))}
+}
+/* ===== 1:1 채팅 ===== */
+let dmPeer=null,dmName="",dmMsgs=[],dmTh=[],dmT=null,dmBroken=false,dmTk=0,dmPrev=0,dmSig="";
+const DMSQL="1:1 채팅을 쓰려면 서버(Supabase)에서 dm.sql을 한 번 실행해야 해요.";
+const dmMissing=e=>e&&(e.code==="PGRST202"||/Could not find the function|does not exist/i.test(e.message||""));
+function dmErr(e){if(dmMissing(e)){dmBroken=true;alert(DMSQL)}else alert("1:1 채팅 오류: "+((e&&e.message)||e))}
+async function dmPollTh(){
+  if(dmBroken||!code)return;
+  const{data,error}=await sb.rpc("dm_threads",{p_code:code});
+  if(error){if(dmMissing(error))dmBroken=true;return}
+  dmTh=data||[];dmBadge()}
+function dmBadge(){const n=dmTh.filter(t=>t.peer!==dmPeer).reduce((a,t)=>a+(t.unread||0),0);
+  const b=$("#dmb");if(b)b.textContent=n?"💬 "+n:"💬";
+  if(n>dmPrev&&ntfOn()&&(document.hidden||cv.style.display==="block"))showNtf("새 1:1 메시지 "+n+"개","");
+  dmPrev=n}
+function profCard(u){const m=members[u];if(!m)return;const old=$("#md");if(old)old.remove();
+  const d=document.createElement("div");d.id="md";d.onclick=e=>{if(e.target===d)d.remove()};
+  d.innerHTML=`<div class="box" style="align-items:center;text-align:center"><div style="padding:8px 0">${av(u,"xl",m.name)}</div><b style="font-size:18px">${esc(m.name)}${tag(m.role)}</b><p class="s">${online.has(u)?"온라인":"오프라인"}${u===uid?" · 나":""}</p><div class="row" style="width:100%;justify-content:center">${u===uid?'<button class="g" id="pme">내 프로필 편집</button>':'<button id="pdm">💬 1:1 채팅</button>'}<button class="g" id="pcl">닫기</button></div></div>`;
+  document.body.appendChild(d);$("#pcl").onclick=()=>d.remove();
+  const a=$("#pdm");if(a)a.onclick=()=>{d.remove();dmOpen(u)};
+  const b=$("#pme");if(b)b.onclick=()=>pfEdit(curPf())}
+function dmList(){
+  if(dmBroken){alert(DMSQL);return}
+  const old=$("#md");if(old)old.remove();
+  const d=document.createElement("div");d.id="md";d.onclick=e=>{if(e.target===d)d.remove()};
+  const tm={};dmTh.forEach(t=>tm[t.peer]=t);
+  const others=Object.values(members).filter(u=>u.user_id!==uid).sort((x,y)=>{const a=tm[x.user_id],b=tm[y.user_id];
+    return (b?Date.parse(b.last_at):0)-(a?Date.parse(a.last_at):0)||String(x.name).localeCompare(y.name)});
+  d.innerHTML=`<div class="box"><b>💬 1:1 채팅</b><div id="dmrows">${others.length?others.map(u=>{const t=tm[u.user_id],lt=t?String(t.last_text||"").slice(0,30):"대화 시작하기";
+    return`<button class="g rm" data-dp="${esc(u.user_id)}"><span class="uw">${av(u.user_id,"lg",u.name)}<span class="dmn"><b>${esc(u.name)}${tag(u.role)}</b><small>${esc(lt)}</small></span></span>${t&&t.unread?`<span class="bdg">${t.unread}</span>`:""}</button>`}).join(""):'<p class="s">방에 다른 참여자가 없어요</p>'}</div><div class="row"><button class="g" id="dmc">닫기</button></div></div>`;
+  document.body.appendChild(d);$("#dmc").onclick=()=>d.remove();
+  d.querySelectorAll("[data-dp]").forEach(b=>b.onclick=()=>{d.remove();dmOpen(b.dataset.dp)})}
+function dmHead(){const h=$("#dmh");if(!h)return;const m=members[dmPeer]||{name:dmName};
+  const x=av(dmPeer,"",m.name)+"<b>"+esc(m.name||"")+"</b>"+tag(m.role);if(h.dataset.s!==x){h.dataset.s=x;h.innerHTML=x}}
+function dmOpen(peer){
+  if(dmBroken){alert(DMSQL);return}
+  if(!members[peer]||peer===uid)return;
+  dmClose();dmPeer=peer;dmName=members[peer].name||"";dmMsgs=[];dmSig="";
+  const o=document.createElement("div");o.id="dm";
+  o.innerHTML=`<header><button class="g sm" id="dmx">←</button><div style="flex:1;min-width:0;margin-left:4px"><span id="dmh"></span></div><small style="color:var(--mu);font-size:11px;text-align:right">${fmtS(Math.round(TTL/1000))} 후 삭제</small></header><div id="dml"></div><form id="dmf"><input id="dmt" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
+  document.body.appendChild(o);
+  $("#dmx").onclick=()=>{dmClose();dmPollTh()};
+  $("#dmf").onsubmit=async e=>{e.preventDefault();const t=$("#dmt"),v=t.value.trim();if(!v)return;t.value="";
+    const tmp={id:"t"+Date.now(),from_id:uid,to_id:dmPeer,text:v,created_at:new Date(Date.now()+off).toISOString(),expires_at:new Date(Date.now()+off+TTL).toISOString(),tmp:1,at:Date.now()};
+    dmMsgs.push(tmp);dmDraw(true);
+    const{error}=await sb.rpc("dm_send",{p_code:code,p_to:dmPeer,p_text:v,p_secs:Math.round(TTL/1000)});
+    if(error){dmMsgs=dmMsgs.filter(x=>x!==tmp);dmDraw(true);dmErr(error)}else dmFetch()};
+  $("#dml").addEventListener("click",async e=>{const a=e.target.closest&&e.target.closest("a[data-dd]");if(!a)return;
+    const id=a.dataset.dd;const{error}=await sb.rpc("dm_delete",{p_id:+id});
+    if(error){alert("삭제 실패: "+error.message);return}
+    dmMsgs=dmMsgs.filter(m=>String(m.id)!==id);dmDraw(true)});
+  dmDraw(true);dmFetch();dmTk=0;
+  dmT=setInterval(()=>{dmDraw();if(++dmTk%2===0)dmFetch()},1000)}
+function dmClose(){clearInterval(dmT);dmT=null;dmPeer=null;const o=document.getElementById("dm");if(o)o.remove()}
+async function dmFetch(){
+  if(!dmPeer||!code)return;
+  const peer=dmPeer,{data,error}=await sb.rpc("dm_fetch",{p_code:code,p_peer:peer});
+  if(peer!==dmPeer)return;
+  if(error){if(dmMissing(error)){dmBroken=true;dmClose();alert(DMSQL)}else console.error(error);return}
+  const d=data||[],tm=dmMsgs.filter(x=>x.tmp&&Date.now()-x.at<8000&&!d.some(r=>r.from_id===uid&&r.text===x.text));
+  dmMsgs=d.concat(tm);dmDraw()}
+function dmDraw(force){const l=$("#dml");if(!l)return;const now=Date.now()+off;
+  dmMsgs=dmMsgs.filter(m=>Date.parse(m.expires_at)>now);dmHead();
+  const sg=dmMsgs.map(m=>m.id+"|"+m.text+"|"+(m.read_at||"")).join("\n")+"#"+phs((members[dmPeer]||{}).photo);
+  if(sg!==dmSig||force){dmSig=sg;const end=force||l.scrollHeight-l.scrollTop-l.clientHeight<80;
+    const tsOf=x=>x.created_at?Date.parse(x.created_at):(x.at||0);
+    l.innerHTML=dmMsgs.length?dmMsgs.map(m=>{const me=m.from_id===uid,e=Date.parse(m.expires_at);
+      return`<div class="m ${me?"me":""}"><div class="b">${esc(m.text)}</div><div class="bar" data-e="${e}"></div><div class="t">${me&&!m.tmp&&!m.read_at?'<b class="un">1</b> ':""}<span data-e="${e}"></span>${me&&!m.tmp?` <a data-dd="${esc(m.id)}">삭제</a>`:""}</div></div>`}).join(""):'<div class="sys">메시지를 보내 대화를 시작해 보세요.<br>1:1 메시지도 시간이 지나면 사라져요.</div>';
+    if(end)l.scrollTop=l.scrollHeight}
+  l.querySelectorAll("div.bar[data-e]").forEach(e=>e.style.width=Math.max(0,(e.dataset.e-now)/TTL*100)+"%");
+  l.querySelectorAll("span[data-e]").forEach(e=>e.textContent=cvf(Math.ceil((e.dataset.e-now)/1000))+" 후 삭제")}
+document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;let a;
+  if((a=t.closest("[data-pc]"))){profCard(a.dataset.pc);return}
+  if(t.closest("#list .n .av")&&(a=t.closest("#list .n[data-pu]"))){profCard(a.dataset.pu)}});
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
 if(SUPABASE_URL.includes("YOUR-PROJECT")){app.innerHTML='<div class="center"><h1>Min<span>ute</span></h1><p class="s">index.html 위쪽의 SUPABASE_URL과 SUPABASE_KEY를 먼저 채워주세요.</p></div>'}
 else{sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);sweepImgs();setInterval(sweepImgs,15000);login()}

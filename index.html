@@ -236,7 +236,7 @@ async function enter(c){
     sb.from("messages").select("*").eq("room_code",code).gt("expires_at",new Date(Date.now()+off).toISOString()).order("created_at")]);
   (ms||[]).forEach(m=>members[m.user_id]=m);msgs=mm||[];
   {const P=curPf(),me=members[uid];if(P&&me&&!me.icon&&!okPhoto(me.photo)&&(P.icon||okPhoto(P.photo))){
-    try{const ic=P.icon||null,ph=okPhoto(P.photo)?P.photo:null;const{error}=await sb.from("members").update({icon:ic,photo:ph}).eq("room_code",code).eq("user_id",uid);if(!error){me.icon=ic;me.photo=ph}}catch(_){}}}
+    try{if(await pushProf(P,false)){me.icon=P.icon||null;me.photo=okPhoto(P.photo)?P.photo:null}}catch(_){}}}
   head();drawUsers();draw();
 
   ch=sb.channel("room:"+code,{config:{presence:{key:uid}}})
@@ -474,18 +474,22 @@ document.addEventListener("click",async e=>{
 });
 
 /* ===== 프로필 실시간 반영 ===== */
+async function pushProf(P,withName){
+  const ic=P.icon||null,ph=okPhoto(P.photo)?P.photo:null;
+  const r=await sb.rpc("set_profile",{p_icon:ic,p_photo:ph,p_code:withName&&code?code:null,p_name:withName&&code?P.name:null});
+  if(!r.error)return r.data>0;
+  if(!dmMissing(r.error))throw r.error;
+  const r2=await sb.from("members").update({icon:ic,photo:ph}).eq("user_id",uid).select("room_code");
+  if(r2.error)throw r2.error;
+  return !!(r2.data&&r2.data.length)}
 async function syncProfile(np){
   if(!sb)return;
   try{
     if(!uid){const{data:{session}}=await sb.auth.getSession();if(!session)return;uid=session.user.id}
     const ph=okPhoto(np.photo)?np.photo:null,ic=np.icon||null;
-    const r=await sb.from("members").update({icon:ic,photo:ph}).eq("user_id",uid).select("room_code");
-    if(r.error)throw r.error;
-    if(code&&r.data&&!r.data.length)toast("서버가 프로필 변경을 막고 있어요");
+    const ok=await pushProf(np,true);
+    if(!ok)toast("서버가 프로필 저장을 막고 있어요. profile.sql을 실행해 주세요");
     if(code&&members[uid]){members[uid].icon=ic;members[uid].photo=ph;
-      if(members[uid].name!==np.name){
-        const r2=await sb.from("members").update({name:np.name}).eq("room_code",code).eq("user_id",uid).select("room_code");
-        if(r2.error||!r2.data||!r2.data.length)toast("이름은 바꾸지 못했어요 (같은 이름이 있을 수 있어요)");else members[uid].name=np.name}
       sig="";head();drawUsers();draw();poll(true)}
   }catch(e){toast("프로필 반영 실패: "+(e.message||e))}
 }

@@ -100,6 +100,7 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ac);heig
 #app>header .row::-webkit-scrollbar{display:none}
 #app>header .row button{flex:none;padding:8px 12px;font-size:13px;white-space:nowrap}
 .tag{white-space:nowrap}
+.mn{font-weight:700;text-decoration:underline}.mn.me{background:#f5a62366;border-radius:4px}#mnl{display:flex;gap:6px;overflow-x:auto;padding:0 12px}#mnl:empty{display:none}#mnl button{flex:none}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>
@@ -116,6 +117,7 @@ const st={get:k=>{try{return localStorage.getItem(k)||""}catch{return""}},set:(k
 const tag=r=>r==="admin"?'<span class="crown" title="관리자">👑</span>':r==="sub"?'<span class="tag sub">부관리자</span>':"";
 let sb,uid,code,msgs=[],members={},online=new Set(),ch=null,t1=null,t2=null,t3=null,off=0,pn=0,bans=[];
 const myRole=()=>(members[uid]||{}).role||"user";
+let repN=null,reps=[];
 const PFK="m_profiles",PSEL="m_pf",PFE=["🙂","😎","🥰","😺","🐶","🐱","🐻","🐼","🦊","🐰","🐸","🐵","🦁","🐯","🐧","🦄","🌸","🍀","⭐","🔥","🍕","⚽","🎧","🚀"];
 const pfGet=()=>{try{const a=JSON.parse(st.get(PFK)||"[]");return Array.isArray(a)?a.filter(p=>p&&typeof p.id==="string"&&typeof p.name==="string").slice(0,3):[]}catch{return[]}};
 const pfSet=a=>st.set(PFK,JSON.stringify(a.slice(0,3)));
@@ -208,12 +210,12 @@ function login(msg){
 }
 
 async function enter(c){
-  if(isDm(c))dmSeenSet(c,Date.now()+off);code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;sn=sp="";openPl=false;
+  if(isDm(c))dmSeenSet(c,Date.now()+off);code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;repN=null;reps=[];sn=sp="";openPl=false;
   app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small id="rcd">${isDm(c)?"💬 1:1 채팅":"코드 "+esc(c)}</small></div>
-  <div class="row"><button class="g sm" id="dmb" title="1:1 채팅">💬</button><button class="g sm" id="mealb" title="급식표">🍚</button><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
+  <div class="row"><button class="g sm" id="dmb" title="1:1 채팅">💬</button><button class="g sm" id="mealb" title="학교 정보">🏫</button><button class="g sm" id="rpb" title="신고함" style="display:none">🚩</button><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="nt"></div><div id="pb" style="display:none"></div><div id="pl" style="display:none"></div><div id="us"></div><div id="list"></div>
-  <div id="rp"></div><form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><button type="button" class="g" id="pv" aria-label="투표 만들기">📊</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
-  $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);$("#bn").onclick=toggleNtf;ntfIcon();bindGest();$("#pv").onclick=pollModal;$("#dmb").onclick=dmList;$("#mealb").onclick=mealModal;setRep(null);
+  <div id="rp"></div><div id="mnl"></div><form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><button type="button" class="g" id="pv" aria-label="투표 만들기">📊</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
+  $("#home").onclick=()=>leave();$("#hd").onclick=()=>cover(1);$("#bn").onclick=toggleNtf;ntfIcon();bindGest();$("#pv").onclick=pollModal;$("#dmb").onclick=dmList;$("#mealb").onclick=mealModal;$("#rpb").onclick=repModal;mnInit();setRep(null);
   $("#del").onclick=async()=>{
     const v=prompt("방을 삭제하면 모든 메시지와 참여자가 지워지고, 아무도 다시 들어오거나 채팅을 보낼 수 없어요. 되돌릴 수 없어요.\n\n삭제하려면 방 코드 "+code+" 를 그대로 입력하세요.");
     if(v===null)return;
@@ -256,7 +258,7 @@ async function enter(c){
       if(p.new&&p.new.user_id){members[p.new.user_id]=Object.assign({},members[p.new.user_id]||{},p.new);head();drawUsers();draw()}})
    .on("presence",{event:"sync"},()=>{online=new Set(Object.keys(ch.presenceState()));drawUsers()})
    .subscribe(s=>{if(s==="SUBSCRIBED")ch.track({uid})});
-  t1=setInterval(draw,1000);t2=setInterval(()=>{sb.rpc("purge_expired");sb.rpc("purge_extras")},10000);t3=setInterval(poll,2000);poll();
+  t1=setInterval(draw,1000);t2=setInterval(()=>{sb.rpc("purge_expired");sb.rpc("purge_extras");repPoll()},10000);t3=setInterval(poll,2000);poll();
 }
 function leave(m){if(isDm(code))dmSeenSet(code,Date.now()+off);if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;code="";login(typeof m==="string"?m:"")}
 async function poll(force){
@@ -273,7 +275,7 @@ async function poll(force){
   if(ms){members={};ms.forEach(m=>members[m.user_id]=m);if(!members[uid]){leave("이 방에서 나가졌어요. 방이 삭제되었거나 차단되었을 수 있어요.");return}if(myRole()==="admin"){const{data:bs}=await sb.from("bans").select("id,name").eq("room_code",code);bans=bs||[]}else bans=[];
   head();drawUsers()}
 }
-function head(){const r=myRole();{const q=$("#rcd");if(q&&isDm(code)){const o=Object.values(members).find(x=>x.user_id!==uid);q.textContent="💬 1:1 · "+(o?o.name:"")}}$("#rl").innerHTML=tag(r);$("#clr").style.display=r==="admin"?"":"none";$("#out").style.display=r==="admin"?"none":"";$("#del").style.display=r==="admin"?"":"none"}
+function head(){const r=myRole();{const q=$("#rcd");if(q&&isDm(code)){const o=Object.values(members).find(x=>x.user_id!==uid);q.textContent="💬 1:1 · "+(o?o.name:"")}}$("#rl").innerHTML=tag(r);{const b=$("#rpb");if(b)b.style.display=r!=="user"?"":"none"}$("#clr").style.display=r==="admin"?"":"none";$("#out").style.display=r==="admin"?"none":"";$("#del").style.display=r==="admin"?"":"none"}
 function drawUsers(){
   const list=Object.values(members).sort((x,y)=>(online.has(y.user_id)-online.has(x.user_id))||String(x.name).localeCompare(y.name)),r=myRole();
   const on=list.filter(u=>online.has(u.user_id)).length;
@@ -338,7 +340,7 @@ const RX=["❤️","👍","😂","😮","😢","🙏"];
 function parseRe(t){if(!t||!t.startsWith("[re]"))return null;const a=t.slice(4).split("\n");if(a.length<3)return null;const i=a[0].indexOf("|");return{id:i<0?"":a[0].slice(0,i),name:i<0?a[0]:a[0].slice(i+1),snip:a[1],body:a.slice(2).join("\n")}}
 const mkRe=(r,v)=>"[re]"+(r.id||"")+"|"+r.name+"\n"+r.snip+"\n"+v;
 const plain=t=>{if(imgUrl(t))return"📷 사진";const r=parseRe(t);return(r?r.body:t).replace(/\s+/g," ").slice(0,30)};
-const bodyHtml=t=>{const r=parseRe(t);return r?`<div class="rq" data-rt="${esc(r.id)}">↩ ${esc(r.name)}: ${esc(r.snip)}</div>${esc(r.body)}`:esc(t)};
+const bodyHtml=t=>{const r=parseRe(t);return r?`<div class="rq" data-rt="${esc(r.id)}">↩ ${esc(r.name)}: ${hiMn(esc(r.snip))}</div>${hiMn(esc(r.body))}`:hiMn(esc(t))};
 const unread=m=>{if(m.tmp||!ex.reads)return 0;const c=Date.parse(m.created_at);return ex.reads.filter(r=>r.u!==m.user_id&&(!r.t||Date.parse(r.t)<c)).length};
 const rxSig=()=>ex.reacts.map(r=>r.m+r.u+r.e).join(",")+"#";
 function rxHtml(id){const o={};ex.reacts.forEach(r=>{if(String(r.m)!==String(id))return;const x=o[r.e]||(o[r.e]={n:0,my:0});x.n++;if(r.u===uid)x.my=1});
@@ -357,41 +359,52 @@ const ntfOn=()=>{try{return localStorage.getItem("ntf")==="1"&&window.Notificati
 function ntfIcon(){const b=$("#bn");if(b)b.textContent="⚙️"}
 const lsg=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v==="1"}catch(_){return d}};
 const lss=(k,v)=>{try{localStorage.setItem(k,v?"1":"0")}catch(_){}};
-const MK="m_school",DN=["일","월","화","수","목","금","토"];
+const MK="m_school",GK="m_gc",DN=["일","월","화","수","목","금","토"];
 const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
 const nq=(p,q)=>fetch("https://open.neis.go.kr/hub/"+p+"?"+new URLSearchParams({KEY:NEIS_KEY,Type:"json",...q})).then(r=>r.json());
+const TTP=k=>/초등/.test(k)?"elsTimetable":/중학/.test(k)?"misTimetable":/고등/.test(k)?"hisTimetable":/특수/.test(k)?"spsTimetable":"";
 function mealModal(){
-  if(!NEIS_KEY){alert("index.html 위쪽의 NEIS_KEY에 급식 API 인증키를 넣어주세요");return}
+  if(!NEIS_KEY){alert("index.html 위쪽의 NEIS_KEY에 API 인증키를 넣어주세요");return}
   let sc=null;try{sc=JSON.parse(st.get(MK)||"null")}catch{}
   if(!(sc&&typeof sc.a==="string"&&typeof sc.c==="string"&&typeof sc.n==="string"))sc=null;
-  let day=new Date(),busy=0;
+  let gc=(st.get(GK)||"1,1").split(",").map(x=>Math.min(30,Math.max(1,parseInt(x)||1)));if(gc.length<2)gc=[1,1];
+  let day=new Date(),tab=0,busy=0;
   const d=document.createElement("div");d.id="md";d.onclick=e=>{if(e.target===d)d.remove()};
-  d.innerHTML=`<div class="box"><b>🍚 급식표</b><div style="display:flex;gap:6px"><input id="ms" placeholder="학교 이름 검색" maxlength="30" style="flex:1;min-width:0"><button class="g sm" id="msb">검색</button></div><div id="msl"></div><div id="mb"></div><div class="row"><button id="mx">닫기</button></div></div>`;
+  d.innerHTML=`<div class="box"><b>🏫 학교 정보</b><div style="display:flex;gap:6px"><input id="ks" placeholder="학교 이름 검색" maxlength="30" style="flex:1;min-width:0"><button class="g sm" id="ksb">검색</button></div><div id="ksl"></div><div style="display:flex;gap:6px"><button class="g sm" data-t="0">🍚 급식</button><button class="g sm" data-t="1">📚 시간표</button><button class="g sm" data-t="2">📅 일정</button></div><div id="kb"></div><div class="row"><button id="kx">닫기</button></div></div>`;
   document.body.appendChild(d);
-  $("#mx").onclick=()=>d.remove();
+  $("#kx").onclick=()=>d.remove();
+  d.querySelectorAll("[data-t]").forEach(x=>x.onclick=()=>{tab=+x.dataset.t;day=new Date();load()});
   async function load(){
-    const my=++busy,b=$("#mb");
+    const my=++busy,b=$("#kb");
+    d.querySelectorAll("[data-t]").forEach(x=>{const on=+x.dataset.t===tab;x.style.fontWeight=on?800:500;x.style.borderColor=on?"var(--ac)":""});
     if(!sc){b.innerHTML='<p class="s">학교를 검색해서 선택해 주세요</p>';return}
-    b.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><button class="g sm" id="mp">◀</button><div style="text-align:center;font-size:14px"><b>${esc(sc.n)}</b><br><small>${day.getMonth()+1}월 ${day.getDate()}일 (${DN[day.getDay()]})</small></div><button class="g sm" id="mn">▶</button></div><p class="s" id="mm">불러오는 중…</p>`;
-    $("#mp").onclick=()=>{day.setDate(day.getDate()-1);load()};$("#mn").onclick=()=>{day.setDate(day.getDate()+1);load()};
+    const mo=tab===2,lab=mo?day.getFullYear()+"년 "+(day.getMonth()+1)+"월":(day.getMonth()+1)+"월 "+day.getDate()+"일 ("+DN[day.getDay()]+")";
+    b.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><button class="g sm" id="kp">◀</button><div style="text-align:center;font-size:14px"><b>${esc(sc.n)}</b><br><small>${lab}</small></div><button class="g sm" id="kn">▶</button></div>${tab===1?`<div style="display:flex;gap:6px;align-items:center;font-size:14px"><input id="kg" type="number" min="1" max="30" value="${gc[0]}" style="width:64px;padding:8px"> 학년 <input id="kc" type="number" min="1" max="30" value="${gc[1]}" style="width:64px;padding:8px"> 반</div>`:""}<p class="s" id="km">불러오는 중…</p>`;
+    const mv=n=>{mo?(day.setDate(1),day.setMonth(day.getMonth()+n)):day.setDate(day.getDate()+n);load()};
+    $("#kp").onclick=()=>mv(-1);$("#kn").onclick=()=>mv(1);
+    if(tab===1){const sv=()=>{gc=[Math.min(30,Math.max(1,+$("#kg").value||1)),Math.min(30,Math.max(1,+$("#kc").value||1))];st.set(GK,gc.join(","));load()};$("#kg").onchange=sv;$("#kc").onchange=sv}
+    const f={ATPT_OFCDC_SC_CODE:sc.a,SD_SCHUL_CODE:sc.c},m=$("#km");let p,q;
+    if(tab===0){p="mealServiceDietInfo";q={...f,MLSV_YMD:ymd(day)}}
+    else if(tab===1){p=TTP(sc.k||"");q={...f,ALL_TI_YMD:ymd(day),GRADE:gc[0],CLASS_NM:gc[1]}}
+    else{const ym=ymd(day).slice(0,6);p="SchoolSchedule";q={...f,AA_FROM_YMD:ym+"01",AA_TO_YMD:ym+String(new Date(day.getFullYear(),day.getMonth()+1,0).getDate())}}
+    if(!p){m.textContent="시간표를 보려면 위에서 학교를 다시 검색해 선택해 주세요";return}
     try{
-      const j=await nq("mealServiceDietInfo",{ATPT_OFCDC_SC_CODE:sc.a,SD_SCHUL_CODE:sc.c,MLSV_YMD:ymd(day)});
-      const m=$("#mm");if(my!==busy||!m)return;
-      const rows=j.mealServiceDietInfo&&j.mealServiceDietInfo[1]&&j.mealServiceDietInfo[1].row;
-      if(rows){m.className="";m.innerHTML=rows.map(r=>`<div style="margin-top:10px"><b>${esc(r.MMEAL_SC_NM||"")}</b> <small style="color:var(--mu)">${esc(r.CAL_INFO||"")}</small><div style="font-size:14px;line-height:1.7">${String(r.DDISH_NM||"").split(/<br\s*\/?>/i).map(x=>esc(x.trim())).filter(Boolean).join("<br>")}</div></div>`).join("")}
-      else{const c=j.RESULT&&j.RESULT.CODE;m.textContent=c==="INFO-200"||!c?"이 날은 급식 정보가 없어요":c==="ERROR-290"?"API 인증키가 올바르지 않아요":"불러오지 못했어요 ("+c+")"}
-    }catch(_){const m=$("#mm");if(my===busy&&m)m.textContent="불러오지 못했어요. 잠시 후 다시 시도해 주세요"}
+      const j=await nq(p,q);if(my!==busy)return;
+      const rows=j[p]&&j[p][1]&&j[p][1].row,ln='font-size:14px;line-height:1.9';
+      if(rows){m.className="";m.innerHTML=tab===0?rows.map(r=>`<div style="margin-top:10px"><b>${esc(r.MMEAL_SC_NM||"")}</b> <small style="color:var(--mu)">${esc(r.CAL_INFO||"")}</small><div style="font-size:14px;line-height:1.7">${String(r.DDISH_NM||"").split(/<br\s*\/?>/i).map(x=>esc(x.trim())).filter(Boolean).join("<br>")}</div></div>`).join(""):tab===1?rows.slice().sort((a,b)=>a.PERIO-b.PERIO).map(r=>`<div style="${ln}">${esc(r.PERIO)}교시 <b>${esc(r.ITRT_CNTNT||"")}</b></div>`).join(""):rows.map(r=>{const s=String(r.AA_YMD),n=+s.slice(6,8),w=DN[new Date(+s.slice(0,4),+s.slice(4,6)-1,n).getDay()];return`<div style="${ln}${s===ymd(new Date())?";font-weight:800":""}">${n}일(${w}) ${esc(r.EVENT_NM||"")}</div>`}).join("")}
+      else{const c=j.RESULT&&j.RESULT.CODE;m.textContent=c==="INFO-200"||!c?["이 날은 급식 정보가 없어요","시간표가 없어요 (학년·반을 확인해 주세요)","이 달은 일정이 없어요"][tab]:c==="ERROR-290"?"API 인증키가 올바르지 않아요":"불러오지 못했어요 ("+c+")"}
+    }catch(_){if(my===busy)m.textContent="불러오지 못했어요. 잠시 후 다시 시도해 주세요"}
   }
-  $("#msb").onclick=async()=>{
-    const q=$("#ms").value.trim(),l=$("#msl");if(!q)return;l.innerHTML='<p class="s">검색 중…</p>';
+  $("#ksb").onclick=async()=>{
+    const q=$("#ks").value.trim(),l=$("#ksl");if(!q)return;l.innerHTML='<p class="s">검색 중…</p>';
     try{
       const j=await nq("schoolInfo",{SCHUL_NM:q,pSize:8});
       const rows=(j.schoolInfo&&j.schoolInfo[1]&&j.schoolInfo[1].row)||[];
       l.innerHTML=rows.length?rows.map((r,i)=>`<button class="g rm" data-si="${i}" style="width:100%;margin-top:4px"><span>${esc(r.SCHUL_NM)}</span><small style="max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.ORG_RDNMA||r.ATPT_OFCDC_SC_NM||"")}</small></button>`).join(""):'<p class="s">학교를 찾을 수 없어요</p>';
-      l.querySelectorAll("[data-si]").forEach(x=>x.onclick=()=>{const r=rows[+x.dataset.si];sc={a:String(r.ATPT_OFCDC_SC_CODE),c:String(r.SD_SCHUL_CODE),n:String(r.SCHUL_NM)};st.set(MK,JSON.stringify(sc));l.innerHTML="";day=new Date();load()});
+      l.querySelectorAll("[data-si]").forEach(x=>x.onclick=()=>{const r=rows[+x.dataset.si];sc={a:String(r.ATPT_OFCDC_SC_CODE),c:String(r.SD_SCHUL_CODE),n:String(r.SCHUL_NM),k:String(r.SCHUL_KND_SC_NM||"")};st.set(MK,JSON.stringify(sc));l.innerHTML="";day=new Date();load()});
     }catch(_){l.innerHTML='<p class="s">검색에 실패했어요</p>'}
   };
-  $("#ms").onkeydown=e=>{if(e.key==="Enter")$("#msb").click()};
+  $("#ks").onkeydown=e=>{if(e.key==="Enter")$("#ksb").click()};
   load();
 }
 function toggleNtf(){const d=document.createElement("div");d.id="md";
@@ -414,20 +427,47 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 function notifyNew(){const ids=new Set(msgs.map(m=>String(m.id)));if(nseen===null){nseen=ids;return}
   const fresh=msgs.filter(m=>!nseen.has(String(m.id))&&!m.tmp&&m.user_id!==uid);nseen=ids;
   if(!fresh.length||!(document.hidden||cv.style.display==="block")||!ntfOn())return;
+  {const mm=fresh.find(m=>mentionsMe(m.text));if(mm){showNtf("📣 "+(mm.name||"")+"님이 나를 불렀어요",lsg("nprv",false)?plain(mm.text).slice(0,15):"");return}}
   {const m=fresh[fresh.length-1],p=plain(m.text);if(!lsg("nprv",false))showNtf("새 메시지 "+fresh.length+"개","");else showNtf((fresh.length>1?fresh.length+"개 · ":"")+(m.name||"새 메시지"),p.length>15?p.slice(0,15)+"…":p)}}
 document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("#list .b.img a");if(!a)return;e.preventDefault();
   const d=document.createElement("div");d.style.cssText="position:fixed;inset:0;background:#000e;z-index:25;display:grid;place-items:center;padding:12px";
   d.innerHTML=`<img src="${esc(a.href)}" style="max-width:100%;max-height:100%;object-fit:contain">`;d.onclick=()=>d.remove();document.body.appendChild(d)});
 function closePk(){const p=$("#pk");if(p)p.remove()}
+const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),NB="(?![0-9A-Za-z가-힣_])";
+function hiMn(h){const ns=Object.values(members).map(x=>x.name).filter(Boolean).sort((a,b)=>b.length-a.length);if(!ns.length||h.indexOf("@")<0)return h;
+  const me=esc((members[uid]||{}).name||"\0");
+  return h.replace(new RegExp("@("+ns.map(n=>escRe(esc(n))).join("|")+")"+NB,"g"),(_,n)=>`<span class="mn${n===me?" me":""}">@${n}</span>`)}
+function mentionsMe(t){const n=(members[uid]||{}).name;return !!n&&new RegExp("@"+escRe(n)+NB).test(String(t))}
+function mnInit(){const tx=$("#tx"),l=$("#mnl");if(!tx||!l)return;
+  tx.addEventListener("input",()=>{const v=tx.value,m=/@([^\s@]{0,16})$/.exec(v);if(!m){l.innerHTML="";return}
+    const q=m[1].toLowerCase(),ns=Object.values(members).filter(x=>x.user_id!==uid&&x.name&&x.name.toLowerCase().startsWith(q)).slice(0,6);
+    l.innerHTML=ns.map((x,i)=>`<button type="button" class="g sm" data-mn="${i}">@${esc(x.name)}</button>`).join("");
+    l.querySelectorAll("[data-mn]").forEach(b=>{b.onpointerdown=e=>e.preventDefault();b.onclick=()=>{tx.value=v.slice(0,m.index)+"@"+ns[+b.dataset.mn].name+" ";l.innerHTML="";tx.focus()}})});
+  $("#f").addEventListener("submit",()=>{l.innerHTML=""})}
+function reportMsg(m){const why=prompt("신고 사유를 적어주세요 (방장·부관리자에게만 전달돼요)","");if(why===null)return;
+  sb.rpc("report_message",{p_id:String(m.id),p_reason:why}).then(({data,error})=>toast(error?"신고 기능이 아직 준비되지 않았어요":data?"신고했어요. 방장에게 전달돼요":"신고할 수 없어요 (이미 신고했거나 한도 초과)"))}
+async function repPoll(){if(!code||myRole()==="user")return;
+  const{data,error}=await sb.rpc("list_reports",{p_code:code});if(error||!Array.isArray(data))return;
+  const old=repN;reps=data;repN=data.length;const b=$("#rpb");if(b)b.textContent=repN?"🚩 "+repN:"🚩";
+  if(old!==null&&repN>old){toast("🚩 새 신고가 들어왔어요");if(ntfOn()&&(document.hidden||cv.style.display==="block"))showNtf("🚩 새 신고가 들어왔어요","")}}
+function repModal(){const d=document.createElement("div");d.id="md";d.onclick=e=>{if(e.target===d)d.remove()};
+  const draw=()=>{d.innerHTML=`<div class="box"><b>🚩 신고함</b>${reps.length?reps.map((r,i)=>`<div style="border-top:1px solid var(--bd);padding-top:8px"><b>${esc(r.target_name||"")}</b> <small style="color:var(--mu)">${esc(new Date(r.created_at).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"}))}</small><div style="font-size:14px">${esc(r.msg_text||"")}</div><small style="color:var(--mu)">사유: ${esc(r.reason||"-")}</small><div class="row"><button class="g sm" data-ra="k${i}" style="color:#e5484d">강퇴</button>${myRole()==="admin"?`<button class="g sm" data-ra="b${i}" style="color:#e5484d">차단</button>`:""}<button class="g sm" data-ra="d${i}">처리 완료</button></div></div>`).join(""):'<p class="s">신고가 없어요</p>'}<div class="row"><button id="rx">닫기</button></div></div>`;
+    $("#rx").onclick=()=>d.remove();
+    d.querySelectorAll("[data-ra]").forEach(x=>x.onclick=async()=>{const t=x.dataset.ra[0],r=reps[+x.dataset.ra.slice(1)];if(!r)return;
+      if(t!=="d"&&!confirm(r.target_name+"님을 "+(t==="k"?"강퇴":"차단")+"할까요?"))return;
+      if(t==="k"){const{data}=await sb.rpc("kick_user",{p_code:code,p_target:r.target});if(!data){toast("강퇴할 수 없어요 (권한이 없거나 이미 나갔어요)");return}}
+      if(t==="b"){const{error}=await sb.rpc("ban_user",{p_code:code,p_target:r.target});if(error){toast("차단하지 못했어요");return}}
+      await sb.rpc("dismiss_report",{p_id:r.id});reps=reps.filter(z=>z.id!==r.id);repN=reps.length;draw()})};
+  document.body.appendChild(d);draw();repPoll().then(()=>{if($("#rx"))draw()})}
 function openPk(el){closePk();const m=findM(el.dataset.mid);if(!m||m.tmp)return;
   const p=document.createElement("div");p.id="pk";
-  p.innerHTML=`<div>${RX.map(e=>`<b data-pe="${e}">${e}</b>`).join("")}</div><div class="pa"><a data-pa="re">↩ 답장</a>${imgUrl(m.text)?"":'<a data-pa="cp">📋 복사</a>'}${myRole()!=="user"?'<a data-pa="nt">📢 공지</a>':""}</div>`;
+  p.innerHTML=`<div>${RX.map(e=>`<b data-pe="${e}">${e}</b>`).join("")}</div><div class="pa"><a data-pa="re">↩ 답장</a>${imgUrl(m.text)?"":'<a data-pa="cp">📋 복사</a>'}${myRole()!=="user"?'<a data-pa="nt">📢 공지</a>':""}${m.user_id!==uid?'<a data-pa="rp">🚩 신고</a>':""}</div>`;
   document.body.appendChild(p);
   const r=(el.querySelector(".b")||el).getBoundingClientRect(),w=p.offsetWidth,h=p.offsetHeight;
   p.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+"px";
   p.style.top=(r.top-h-6<8?r.bottom+6:r.top-h-6)+"px";
   p.onclick=ev=>{const a=ev.target.closest("[data-pe],[data-pa]");if(!a)return;closePk();
-    if(a.dataset.pe)react(m.id,a.dataset.pe);else if(a.dataset.pa==="re")startReply(m.id);else if(a.dataset.pa==="cp"){const r=parseRe(m.text);copyTxt(r?r.body:m.text)}else notice(m)};
+    if(a.dataset.pe)react(m.id,a.dataset.pe);else if(a.dataset.pa==="re")startReply(m.id);else if(a.dataset.pa==="cp"){const r=parseRe(m.text);copyTxt(r?r.body:m.text)}else if(a.dataset.pa==="rp")reportMsg(m);else notice(m)};
   const out=ev=>{if(ev.target.closest("#pk"))document.addEventListener("pointerdown",out,{once:true});else closePk()};
   setTimeout(()=>document.addEventListener("pointerdown",out,{once:true}),0)}
 function bindGest(){const l=$("#list");l.addEventListener("load",e=>{if(e.target.tagName==="IMG")imgLoad()},true);

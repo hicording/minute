@@ -169,7 +169,8 @@ async function rooms(){
     if(!uid){const{data:{session}}=await sb.auth.getSession();if(!session)return;uid=session.user.id}
     const{data,error}=await sb.from("members").select("room_code,name,role").eq("user_id",uid);
     const box=$("#rm");if(!box||error||!data||!data.length)return;
-    box.innerHTML='<p class="s">내가 들어간 방</p>'+data.map(r=>`<button class="g rm" data-rc="${esc(r.room_code)}"><span>${esc(r.room_code)}</span><small>${esc(r.name)}${tag(r.role)}</small></button>`).join("")+'<hr class="dv">';
+    const dl=await dmLabels(data.filter(r=>isDm(r.room_code)).map(r=>r.room_code));
+    box.innerHTML='<p class="s">내가 들어간 방</p>'+data.map(r=>`<button class="g rm" data-rc="${esc(r.room_code)}"><span>${isDm(r.room_code)?"💬 "+esc(dl[r.room_code]||"1:1"):esc(r.room_code)}</span><small>${esc(r.name)}${tag(r.role)}</small></button>`).join("")+'<hr class="dv">';
     box.querySelectorAll("[data-rc]").forEach(b=>b.onclick=async()=>{b.disabled=true;
       try{await enter(b.dataset.rc)}catch(e){const er=$("#er");if(er)er.textContent=e.message||"입장에 실패했어요";b.disabled=false}});
   }catch(e){console.error(e)}
@@ -199,8 +200,8 @@ function login(msg){
 }
 
 async function enter(c){
-  dmClose();dmTh=[];dmPrev=0;code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;sn=sp="";openPl=false;
-  app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small>코드 ${esc(c)}</small></div>
+  if(isDm(c))dmSeenSet(c,Date.now()+off);code=c;msgs=[];members={};online=new Set();bans=[];ex={notes:[],polls:[],reacts:[],reads:[]};nseen=null;rep=null;sn=sp="";openPl=false;
+  app.innerHTML=`<header><div><b>Minute</b><span id="rl"></span><small id="rcd">${isDm(c)?"💬 1:1 채팅":"코드 "+esc(c)}</small></div>
   <div class="row"><button class="g sm" id="dmb" title="1:1 채팅">💬</button><button class="g sm" id="bn" title="설정">⚙️</button><button class="g sm" id="hd" title="빠른 숨김 (Alt+V)">👁</button><button class="g sm" id="ub"></button><button class="g sm" id="clr" style="display:none">전체삭제</button><button class="g sm" id="home">홈</button><button class="g sm" id="out" style="color:#e5484d">방 나가기</button><button class="g sm" id="del" style="display:none;color:#e5484d">방 삭제</button></div></header>
   <div id="nt"></div><div id="pb" style="display:none"></div><div id="pl" style="display:none"></div><div id="us"></div><div id="list"></div>
   <div id="rp"></div><form id="f"><button type="button" class="g" id="ph" aria-label="사진 보내기">📷</button><button type="button" class="g" id="pv" aria-label="투표 만들기">📊</button><input type="file" id="fl" accept="image/*" hidden><input id="tx" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
@@ -247,9 +248,9 @@ async function enter(c){
       if(p.new&&p.new.user_id){members[p.new.user_id]=Object.assign({},members[p.new.user_id]||{},p.new);head();drawUsers();draw()}})
    .on("presence",{event:"sync"},()=>{online=new Set(Object.keys(ch.presenceState()));drawUsers()})
    .subscribe(s=>{if(s==="SUBSCRIBED")ch.track({uid})});
-  t1=setInterval(draw,1000);t2=setInterval(()=>{sb.rpc("purge_expired");sb.rpc("purge_extras");if(!dmBroken)sb.rpc("dm_purge")},10000);t3=setInterval(poll,2000);poll();
+  t1=setInterval(draw,1000);t2=setInterval(()=>{sb.rpc("purge_expired");sb.rpc("purge_extras")},10000);t3=setInterval(poll,2000);poll();
 }
-function leave(m){dmClose();dmTh=[];if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;code="";login(typeof m==="string"?m:"")}
+function leave(m){if(isDm(code))dmSeenSet(code,Date.now()+off);if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;code="";login(typeof m==="string"?m:"")}
 async function poll(force){
   if(!code)return;
   const now=new Date(Date.now()+off).toISOString();
@@ -264,7 +265,7 @@ async function poll(force){
   if(ms){members={};ms.forEach(m=>members[m.user_id]=m);if(!members[uid]){leave("이 방에서 나가졌어요. 방이 삭제되었거나 차단되었을 수 있어요.");return}if(myRole()==="admin"){const{data:bs}=await sb.from("bans").select("id,name").eq("room_code",code);bans=bs||[]}else bans=[];
   head();drawUsers()}
 }
-function head(){const r=myRole();$("#rl").innerHTML=tag(r);$("#clr").style.display=r==="admin"?"":"none";$("#out").style.display=r==="admin"?"none":"";$("#del").style.display=r==="admin"?"":"none"}
+function head(){const r=myRole();{const q=$("#rcd");if(q&&isDm(code)){const o=Object.values(members).find(x=>x.user_id!==uid);q.textContent="💬 1:1 · "+(o?o.name:"")}}$("#rl").innerHTML=tag(r);$("#clr").style.display=r==="admin"?"":"none";$("#out").style.display=r==="admin"?"none":"";$("#del").style.display=r==="admin"?"":"none"}
 function drawUsers(){
   const list=Object.values(members).sort((x,y)=>(online.has(y.user_id)-online.has(x.user_id))||String(x.name).localeCompare(y.name)),r=myRole();
   const on=list.filter(u=>online.has(u.user_id)).length;
@@ -493,76 +494,76 @@ async function syncProfile(np){
       sig="";head();drawUsers();draw();poll(true)}
   }catch(e){toast("프로필 반영 실패: "+(e.message||e))}
 }
-/* ===== 1:1 채팅 ===== */
-let dmPeer=null,dmName="",dmMsgs=[],dmTh=[],dmT=null,dmBroken=false,dmTk=0,dmPrev=0,dmSig="";
-const DMSQL="1:1 채팅을 쓰려면 서버(Supabase)에서 dm.sql을 한 번 실행해야 해요.";
+/* ===== 1:1 채팅 = 독립된 방 (두 사람 모두 방장) ===== */
+let dmTh=[],dmPrev=0,dmTk=0;
+const DMSQL="1:1 채팅을 쓰려면 서버(Supabase)에서 dm_room.sql을 한 번 실행해야 해요.";
+const isDm=c=>/^DM[A-Z0-9]{2,10}$/.test(c||"");
+const dmSeenGet=c=>+st.get("m_dmseen_"+c)||0;
+const dmSeenSet=(c,t)=>st.set("m_dmseen_"+c,String(Math.round(t)));
 const dmMissing=e=>e&&(e.code==="PGRST202"||/Could not find the function|does not exist/i.test(e.message||""));
-function dmErr(e){if(dmMissing(e)){dmBroken=true;alert(DMSQL)}else alert("1:1 채팅 오류: "+((e&&e.message)||e))}
+async function dmLabels(codes){const o={};if(!codes.length)return o;
+  const{data}=await sb.from("members").select("room_code,user_id,name").in("room_code",codes);
+  (data||[]).forEach(x=>{if(x.user_id!==uid)o[x.room_code]=x.name});return o}
 async function dmPollTh(){
-  if(dmBroken||!code)return;
-  const{data,error}=await sb.rpc("dm_threads",{p_code:code});
-  if(error){if(dmMissing(error))dmBroken=true;return}
-  dmTh=data||[];dmBadge()}
-function dmBadge(){const n=dmTh.filter(t=>t.peer!==dmPeer).reduce((a,t)=>a+(t.unread||0),0);
+  if(!sb||!uid)return;
+  if(dmTk++%2)return;
+  try{
+    const{data:mine,error}=await sb.from("members").select("room_code").eq("user_id",uid).like("room_code","DM%");
+    if(error)return;
+    const codes=(mine||[]).map(x=>x.room_code).filter(isDm);
+    if(!codes.length){dmTh=[];dmBadge();return}
+    const[{data:mm},{data:ms}]=await Promise.all([
+      sb.from("members").select("room_code,user_id,name,icon,photo,role").in("room_code",codes),
+      sb.from("messages").select("room_code,user_id,text,created_at").in("room_code",codes).gt("expires_at",new Date(Date.now()+off).toISOString()).order("created_at",{ascending:false}).limit(200)]);
+    if(code&&isDm(code))dmSeenSet(code,Date.now()+off);
+    dmTh=codes.map(c=>{const peer=(mm||[]).find(x=>x.room_code===c&&x.user_id!==uid)||null,list=(ms||[]).filter(x=>x.room_code===c),last=list[0]||null,seen=dmSeenGet(c);
+      return{code:c,peer,last,unread:c===code?0:list.filter(x=>x.user_id!==uid&&Date.parse(x.created_at)>seen).length}})
+      .sort((x,y)=>(y.last?Date.parse(y.last.created_at):0)-(x.last?Date.parse(x.last.created_at):0));
+    dmBadge();
+  }catch(e){console.error(e)}}
+function dmBadge(){const n=dmTh.reduce((a,t)=>a+(t.unread||0),0);
   const b=$("#dmb");if(b)b.textContent=n?"💬 "+n:"💬";
   if(n>dmPrev&&ntfOn()&&(document.hidden||cv.style.display==="block"))showNtf("새 1:1 메시지 "+n+"개","");
   dmPrev=n}
 function profCard(u){const m=members[u];if(!m)return;const old=$("#md");if(old)old.remove();
   const d=document.createElement("div");d.id="md";d.onclick=e=>{if(e.target===d)d.remove()};
-  d.innerHTML=`<div class="box" style="align-items:center;text-align:center"><div style="padding:8px 0">${av(u,"xl",m.name)}</div><b style="font-size:18px">${esc(m.name)}${tag(m.role)}</b><p class="s">${online.has(u)?"온라인":"오프라인"}${u===uid?" · 나":""}</p><div class="row" style="width:100%;justify-content:center">${u===uid?'<button class="g" id="pme">내 프로필 편집</button>':'<button id="pdm">💬 1:1 채팅</button>'}<button class="g" id="pcl">닫기</button></div></div>`;
+  d.innerHTML=`<div class="box" style="align-items:center;text-align:center"><div style="padding:8px 0">${av(u,"xl",m.name)}</div><b style="font-size:18px">${esc(m.name)}${tag(m.role)}</b><p class="s">${online.has(u)?"온라인":"오프라인"}${u===uid?" · 나":""}</p><div class="row" style="width:100%;justify-content:center">${u===uid?'<button class="g" id="pme">내 프로필 편집</button>':(isDm(code)?"":'<button id="pdm">💬 1:1 채팅</button>')}<button class="g" id="pcl">닫기</button></div></div>`;
   document.body.appendChild(d);$("#pcl").onclick=()=>d.remove();
-  const a=$("#pdm");if(a)a.onclick=()=>{d.remove();dmOpen(u)};
+  const a=$("#pdm");if(a)a.onclick=()=>{d.remove();dmStart(u)};
   const b=$("#pme");if(b)b.onclick=()=>pfEdit(curPf())}
 function dmList(){
-  if(dmBroken){alert(DMSQL);return}
   const old=$("#md");if(old)old.remove();
   const d=document.createElement("div");d.id="md";d.onclick=e=>{if(e.target===d)d.remove()};
-  const tm={};dmTh.forEach(t=>tm[t.peer]=t);
-  const others=Object.values(members).filter(u=>u.user_id!==uid).sort((x,y)=>{const a=tm[x.user_id],b=tm[y.user_id];
-    return (b?Date.parse(b.last_at):0)-(a?Date.parse(a.last_at):0)||String(x.name).localeCompare(y.name)});
-  d.innerHTML=`<div class="box"><b>💬 1:1 채팅</b><div id="dmrows">${others.length?others.map(u=>{const t=tm[u.user_id],lt=t?String(t.last_text||"").slice(0,30):"대화 시작하기";
-    return`<button class="g rm" data-dp="${esc(u.user_id)}"><span class="uw">${av(u.user_id,"lg",u.name)}<span class="dmn"><b>${esc(u.name)}${tag(u.role)}</b><small>${esc(lt)}</small></span></span>${t&&t.unread?`<span class="bdg">${t.unread}</span>`:""}</button>`}).join(""):'<p class="s">방에 다른 참여자가 없어요</p>'}</div><div class="row"><button class="g" id="dmc">닫기</button></div></div>`;
+  const have=new Set(dmTh.filter(t=>t.peer).map(t=>t.peer.user_id)),rows=[];
+  dmTh.forEach(t=>{const pn=t.peer?t.peer.name:"(상대 없음)",lt=t.last?(imgUrl(t.last.text)?"📷 사진":plain(t.last.text)):"대화 시작하기";
+    rows.push(`<button class="g rm" data-dc="${esc(t.code)}"><span class="uw">${avHtml(t.peer&&t.peer.photo,t.peer&&t.peer.icon,pn,"lg")}<span class="dmn"><b>${esc(pn)}</b><small>${esc(String(lt).slice(0,30))}</small></span></span>${t.unread?`<span class="bdg">${t.unread}</span>`:""}</button>`)});
+  if(!isDm(code))Object.values(members).filter(u=>u.user_id!==uid&&!have.has(u.user_id)).sort((x,y)=>String(x.name).localeCompare(y.name)).forEach(u=>
+    rows.push(`<button class="g rm" data-dn="${esc(u.user_id)}"><span class="uw">${av(u.user_id,"lg",u.name)}<span class="dmn"><b>${esc(u.name)}${tag(u.role)}</b><small>1:1 채팅 시작하기</small></span></span></button>`));
+  d.innerHTML=`<div class="box"><b>💬 1:1 채팅</b><p class="s">1:1 채팅은 둘만의 새 방이 만들어지고, 두 사람 모두 방장이에요.</p><div id="dmrows">${rows.length?rows.join(""):'<p class="s">대화할 수 있는 참여자가 없어요</p>'}</div><div class="row"><button class="g" id="dmc">닫기</button></div></div>`;
   document.body.appendChild(d);$("#dmc").onclick=()=>d.remove();
-  d.querySelectorAll("[data-dp]").forEach(b=>b.onclick=()=>{d.remove();dmOpen(b.dataset.dp)})}
-function dmHead(){const h=$("#dmh");if(!h)return;const m=members[dmPeer]||{name:dmName};
-  const x=av(dmPeer,"",m.name)+"<b>"+esc(m.name||"")+"</b>"+tag(m.role);if(h.dataset.s!==x){h.dataset.s=x;h.innerHTML=x}}
-function dmOpen(peer){
-  if(dmBroken){alert(DMSQL);return}
-  if(!members[peer]||peer===uid)return;
-  dmClose();dmPeer=peer;dmName=members[peer].name||"";dmMsgs=[];dmSig="";
-  const o=document.createElement("div");o.id="dm";
-  o.innerHTML=`<header><button class="g sm" id="dmx">←</button><div style="flex:1;min-width:0;margin-left:4px"><span id="dmh"></span></div><small style="color:var(--mu);font-size:11px;text-align:right">${fmtS(Math.round(TTL/1000))} 후 삭제</small></header><div id="dml"></div><form id="dmf"><input id="dmt" placeholder="메시지 입력" autocomplete="off" maxlength="500"><button aria-label="전송"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>`;
-  document.body.appendChild(o);
-  $("#dmx").onclick=()=>{dmClose();dmPollTh()};
-  $("#dmf").onsubmit=async e=>{e.preventDefault();const t=$("#dmt"),v=t.value.trim();if(!v)return;t.value="";
-    const tmp={id:"t"+Date.now(),from_id:uid,to_id:dmPeer,text:v,created_at:new Date(Date.now()+off).toISOString(),expires_at:new Date(Date.now()+off+TTL).toISOString(),tmp:1,at:Date.now()};
-    dmMsgs.push(tmp);dmDraw(true);
-    const{error}=await sb.rpc("dm_send",{p_code:code,p_to:dmPeer,p_text:v,p_secs:Math.round(TTL/1000)});
-    if(error){dmMsgs=dmMsgs.filter(x=>x!==tmp);dmDraw(true);dmErr(error)}else dmFetch()};
-  $("#dml").addEventListener("click",async e=>{const a=e.target.closest&&e.target.closest("a[data-dd]");if(!a)return;
-    const id=a.dataset.dd;const{error}=await sb.rpc("dm_delete",{p_id:+id});
-    if(error){alert("삭제 실패: "+error.message);return}
-    dmMsgs=dmMsgs.filter(m=>String(m.id)!==id);dmDraw(true)});
-  dmDraw(true);dmFetch();dmTk=0;
-  dmT=setInterval(()=>{dmDraw();if(++dmTk%2===0)dmFetch()},1000)}
-function dmClose(){clearInterval(dmT);dmT=null;dmPeer=null;const o=document.getElementById("dm");if(o)o.remove()}
-async function dmFetch(){
-  if(!dmPeer||!code)return;
-  const peer=dmPeer,{data,error}=await sb.rpc("dm_fetch",{p_code:code,p_peer:peer});
-  if(peer!==dmPeer)return;
-  if(error){if(dmMissing(error)){dmBroken=true;dmClose();alert(DMSQL)}else console.error(error);return}
-  const d=data||[],tm=dmMsgs.filter(x=>x.tmp&&Date.now()-x.at<8000&&!d.some(r=>r.from_id===uid&&r.text===x.text));
-  dmMsgs=d.concat(tm);dmDraw()}
-function dmDraw(force){const l=$("#dml");if(!l)return;const now=Date.now()+off;
-  dmMsgs=dmMsgs.filter(m=>Date.parse(m.expires_at)>now);dmHead();
-  const sg=dmMsgs.map(m=>m.id+"|"+m.text+"|"+(m.read_at||"")).join("\n")+"#"+phs((members[dmPeer]||{}).photo);
-  if(sg!==dmSig||force){dmSig=sg;const end=force||l.scrollHeight-l.scrollTop-l.clientHeight<80;
-    const tsOf=x=>x.created_at?Date.parse(x.created_at):(x.at||0);
-    l.innerHTML=dmMsgs.length?dmMsgs.map(m=>{const me=m.from_id===uid,e=Date.parse(m.expires_at);
-      return`<div class="m ${me?"me":""}"><div class="b">${esc(m.text)}</div><div class="bar" data-e="${e}"></div><div class="t">${me&&!m.tmp&&!m.read_at?'<b class="un">1</b> ':""}<span data-e="${e}"></span>${me&&!m.tmp?` <a data-dd="${esc(m.id)}">삭제</a>`:""}</div></div>`}).join(""):'<div class="sys">메시지를 보내 대화를 시작해 보세요.<br>1:1 메시지도 시간이 지나면 사라져요.</div>';
-    if(end)l.scrollTop=l.scrollHeight}
-  l.querySelectorAll("div.bar[data-e]").forEach(e=>e.style.width=Math.max(0,(e.dataset.e-now)/TTL*100)+"%");
-  l.querySelectorAll("span[data-e]").forEach(e=>e.textContent=cvf(Math.ceil((e.dataset.e-now)/1000))+" 후 삭제")}
+  d.querySelectorAll("[data-dc]").forEach(b=>b.onclick=()=>{d.remove();dmGo(b.dataset.dc)});
+  d.querySelectorAll("[data-dn]").forEach(b=>b.onclick=()=>{d.remove();dmStart(b.dataset.dn)})}
+async function dmGo(c){
+  if(c===code)return;
+  if(isDm(code))dmSeenSet(code,Date.now()+off);
+  if(ch)sb.removeChannel(ch);clearInterval(t1);clearInterval(t2);clearInterval(t3);ch=null;code="";
+  try{await enter(c)}catch(e){login(e.message||"입장에 실패했어요")}}
+async function dmStart(peer){
+  const m=members[peer];if(!m)return;
+  dmTk=0;await dmPollTh();
+  const ex=dmTh.find(t=>t.peer&&t.peer.user_id===peer);if(ex){dmGo(ex.code);return}
+  const P=curPf(),me=members[uid]||{},nm=me.name||(P&&P.name);if(!nm){toast("프로필이 필요해요");return}
+  const ic=me.icon||(P&&P.icon)||null,ph=okPhoto(me.photo)?me.photo:(P&&okPhoto(P.photo)?P.photo:null),from=code;
+  toast("1:1 방을 만드는 중…");
+  for(let i=0;i<5;i++){
+    const c="DM"+Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b%32]).join("");
+    const{data,error}=await sb.rpc("create_room",{p_code:c,p_name:nm,p_device:dev(),p_icon:ic,p_photo:ph});
+    if(error){alert("방 만들기 실패: "+error.message);return}
+    if(!data)continue;
+    const{data:ok,error:e2}=await sb.rpc("dm_invite",{p_code:c,p_peer:peer,p_from:from});
+    if(e2||!ok){await sb.rpc("delete_room",{p_code:c});alert(dmMissing(e2)?DMSQL:"상대를 초대하지 못했어요"+(e2?": "+e2.message:""));return}
+    await dmGo(c);return}
+  alert("방을 만들지 못했어요. 다시 시도해 주세요")}
 document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;let a;
   if((a=t.closest("[data-pc]"))){profCard(a.dataset.pc);return}
   if(t.closest("#list .n .av")&&(a=t.closest("#list .n[data-pu]"))){profCard(a.dataset.pu)}});

@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Minute">
 <style>
-:root{--bg:#fff;--sf:#f2f3f7;--tx:#16181d;--mu:#767b88;--ac:#5b5bf0;--bd:#e3e5ea}
-@media (prefers-color-scheme:dark){:root{--bg:#121317;--sf:#1e2026;--tx:#eceef3;--mu:#8b909c;--bd:#2c2f38}}
+:root{--bg:#fff;--sf:#f2f3f7;--tx:#16181d;--mu:#767b88;--ac:#5b5bf0;--bd:#e3e5ea;--kbg:#b2c7d9;--ko:#fff;--km:#fee500;--kt:#191919;--kn:#3f4b57}
+@media (prefers-color-scheme:dark){:root{--bg:#121317;--sf:#1e2026;--tx:#eceef3;--mu:#8b909c;--bd:#2c2f38;--kbg:#1d2530;--ko:#2f343c;--kn:#9aa3af}}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
 #app{height:100%;display:flex;flex-direction:column;max-width:600px;margin:0 auto;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
@@ -76,6 +76,38 @@ select{font:inherit;padding:13px 14px;border:1px solid var(--bd);border-radius:1
 #md .box{background:var(--bg);border-radius:16px;padding:16px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;max-height:90vh;overflow:auto}
 #po{display:flex;flex-direction:column;gap:6px}
 .ck{display:flex;align-items:center;gap:10px;font-size:14px}.ck input{flex:none;width:20px;height:20px;padding:0;margin:0}.un{color:#f5a623;font-weight:700;font-size:12px;margin-right:2px}.rq[data-rt]{cursor:pointer}.po.end{cursor:default}.po.win{border-color:#2fb344;font-weight:700}.po.win .pf{background:#2fb344;opacity:.25}@keyframes fl{0%,60%{background:#f5a62355}}.m.fl .b{animation:fl 1.4s}
+
+/* ---- 카톡 스타일 ---- */
+#list{background:var(--kbg);gap:6px}
+.m{align-self:stretch;max-width:100%;display:flex;align-items:flex-start;gap:8px;position:relative}
+.m.me{flex-direction:row-reverse}
+.m.g{margin-top:-3px}
+.pa{width:40px;flex:none}
+.c{display:flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:calc(100% - 48px)}
+.m.me .c{align-items:flex-end;max-width:80%}
+.c .n{color:var(--kn);font-size:12px;margin:0 2px 4px}
+.bw{display:flex;align-items:flex-end;gap:6px;max-width:100%}
+.m.me .bw{flex-direction:row-reverse}
+.bb{display:flex;flex-direction:column;min-width:0}
+.bw .t{flex:none;flex-direction:column;align-items:flex-start;gap:1px;margin:0 0 2px;max-width:56px;font-size:10px;line-height:1.3;color:var(--kn)}
+.m.me .bw .t{align-items:flex-end;text-align:right}
+.bw .t a{padding:3px 0;margin:0}
+.m .b{background:var(--ko);color:var(--tx);border-radius:14px;padding:8px 12px}
+.m.f .b{border-top-left-radius:3px}
+.m.me .b{background:var(--km);color:var(--kt)}
+.m.me.f .b{border-top-left-radius:14px;border-top-right-radius:3px}
+.m .b.img{padding:3px}
+.m .b.img img{max-width:min(240px,62vw)}
+.bar{margin:3px 6px 0;background:var(--kn)}
+#list .sys{color:var(--kn)}
+.av.lg{width:40px;height:40px;line-height:40px;font-size:22px;margin:0;vertical-align:top}
+.av.ltr{color:#fff;font-weight:700;font-size:15px}.av.lg.ltr{font-size:18px}
+#us{gap:10px}#us .u{gap:8px}
+.uw{display:flex;align-items:center;gap:10px;min-width:0}
+.aw{position:relative;flex:none;display:block;width:40px;height:40px}
+.aw .on{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;margin:0;border:2px solid var(--bg)}
+input[type=range]{padding:0;border:0;background:none;accent-color:var(--ac);height:32px}
+.tls{display:flex;justify-content:space-between;font-size:11px;color:var(--mu)}
 </style></head><body><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script>
@@ -83,7 +115,9 @@ select{font:inherit;padding:13px 14px;border:1px solid var(--bd);border-radius:1
 const SUPABASE_URL="https://drqjyvhgztnquadkpcyy.supabase.co";
 const SUPABASE_KEY="sb_publishable_kCn-7ZjtLnMQ0WJwXdwZcQ_Dct1mqvr";
 
-let TTL=60000;const $=s=>document.querySelector(s),app=$("#app");
+let TTL=60000;const TS=[10,20,30,45,60,90,120,180,300,600,900,1800,2700,3600];
+const fmtS=x=>{const h=Math.floor(x/3600),m=Math.floor(x%3600/60),c=x%60;return[h?h+"시간":"",m?m+"분":"",c?c+"초":""].filter(Boolean).join(" ")};
+const tIdx=x=>{let b=0;TS.forEach((v,i)=>{if(Math.abs(v-x)<Math.abs(TS[b]-x))b=i});return b};const $=s=>document.querySelector(s),app=$("#app");
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const st={get:k=>{try{return localStorage.getItem(k)||""}catch{return""}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
 const tag=r=>r==="admin"?'<span class="crown" title="관리자">👑</span>':r==="sub"?'<span class="tag sub">부관리자</span>':"";
@@ -95,8 +129,9 @@ const pfSet=a=>st.set(PFK,JSON.stringify(a.slice(0,3)));
 const PHRE=/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,12000}$/;
 const okPhoto=x=>typeof x==="string"&&PHRE.test(x);
 const curPf=()=>{const a=pfGet();return a.find(p=>p.id===st.get(PSEL))||a[0]||null};
-const avHtml=(photo,icon)=>okPhoto(photo)?`<img class="av" src="${esc(photo)}" alt="">`:(icon?`<span class="av">${esc(String(icon).slice(0,8))}</span>`:"");
-const av=u=>{const m=members[u]||{};return avHtml(m.photo,m.icon)};
+const avc=n=>{let h=0;for(const c of String(n))h=(h*31+c.charCodeAt(0))%360;return`hsl(${h},45%,50%)`};
+const avHtml=(photo,icon,name,cls)=>{const k=cls?" "+cls:"";return okPhoto(photo)?`<img class="av${k}" src="${esc(photo)}" alt="">`:(icon?`<span class="av${k}">${esc(String(icon).slice(0,8))}</span>`:(name?`<span class="av ltr${k}" style="background:${avc(name)}">${esc([...String(name)][0]||"?")}</span>`:""))};
+const av=(u,cls,nm)=>{const m=members[u]||{};let ph=m.photo,ic=m.icon;if(u===uid&&!okPhoto(ph)&&!ic){const P=curPf();if(P){ph=P.photo;ic=P.icon}}return avHtml(ph,ic,m.name||nm,cls)};
 function cropAv(f){return new Promise((ok,no)=>{const u=URL.createObjectURL(f),i=new Image();
   i.onload=()=>{URL.revokeObjectURL(u);const S=80,c=document.createElement("canvas");c.width=c.height=S;
     const k=Math.min(i.width,i.height),sx=(i.width-k)/2,sy=(i.height-k)/2;c.getContext("2d").drawImage(i,sx,sy,k,k,0,0,S,S);
@@ -214,6 +249,8 @@ async function enter(c){
     sb.from("members").select("user_id,room_code,name,role,icon,photo").eq("room_code",code),
     sb.from("messages").select("*").eq("room_code",code).gt("expires_at",new Date(Date.now()+off).toISOString()).order("created_at")]);
   (ms||[]).forEach(m=>members[m.user_id]=m);msgs=mm||[];
+  {const P=curPf(),me=members[uid];if(P&&me&&!me.icon&&!okPhoto(me.photo)&&(P.icon||okPhoto(P.photo))){
+    try{const ic=P.icon||null,ph=okPhoto(P.photo)?P.photo:null;const{error}=await sb.from("members").update({icon:ic,photo:ph}).eq("room_code",code).eq("user_id",uid);if(!error){me.icon=ic;me.photo=ph}}catch(_){}}}
   head();drawUsers();draw();
 
   ch=sb.channel("room:"+code,{config:{presence:{key:uid}}})
@@ -246,7 +283,7 @@ function drawUsers(){
   const on=list.filter(u=>online.has(u.user_id)).length;
   $("#ub").textContent="참여자 "+list.length;
   let h=`<div class="sys" style="align-self:flex-start">온라인 ${on}명 · 참여자 ${list.length}명</div>`;
-  h+=list.map(u=>`<div class="u"><span><i class="on ${online.has(u.user_id)?"":"off"}"></i>${av(u.user_id)}${esc(u.name)}${tag(u.role)}${u.user_id===uid?" (나)":""}</span>
+  h+=list.map(u=>`<div class="u"><span class="uw"><span class="aw">${av(u.user_id,"lg",u.name)}<i class="on ${online.has(u.user_id)?"":"off"}"></i></span><span>${esc(u.name)}${tag(u.role)}${u.user_id===uid?" (나)":""}</span></span>
   ${(r==="admin"&&u.role!=="admin")||(r==="sub"&&u.role==="user")?`<span class="row">${r==="admin"?`<button class="g sm" data-u="${esc(u.user_id)}" data-r="${u.role==="sub"?"user":"sub"}">${u.role==="sub"?"부관리자 해제":"부관리자 지정"}</button><button class="g sm" data-host="${esc(u.user_id)}">방장 넘기기</button>`:""}<button class="g sm" data-kick="${esc(u.user_id)}" style="color:#e5484d">강퇴</button><button class="g sm" data-ban="${esc(u.user_id)}" style="color:#e5484d">차단</button></span>`:""}</div>`).join("");
   if(r==="admin"&&bans.length)h+=`<div class="sys" style="align-self:flex-start;margin-top:6px">차단됨 ${bans.length}명</div>`+bans.map(x=>`<div class="u"><span>${esc(x.name||"알 수 없음")}</span><button class="g sm" data-unban="${esc(x.id)}">차단 해제</button></div>`).join("");
   $("#us").innerHTML=h;
@@ -325,7 +362,7 @@ function ntfIcon(){const b=$("#bn");if(b)b.textContent="⚙️"}
 const lsg=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v==="1"}catch(_){return d}};
 const lss=(k,v)=>{try{localStorage.setItem(k,v?"1":"0")}catch(_){}};
 function toggleNtf(){const d=document.createElement("div");d.id="md";
-  d.innerHTML=`<div class="box"><b>⚙️ 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><label class="ck"><input type="checkbox" id="n4"> 나갔다 오면 자동 가림막</label><p class="s">알림은 앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p>${myRole()==="admin"?`<hr class="dv"><b>⏱ 메시지 사라지는 시간 (방장)</b><select id="tl">${[[10,"10초"],[30,"30초"],[60,"1분"],[300,"5분"],[1800,"30분"],[3600,"1시간"]].map(([x,l])=>`<option value="${x}">${l}</option>`).join("")}</select>`:""}<div class="row"><button id="nx">확인</button></div></div>`;
+  d.innerHTML=`<div class="box"><b>⚙️ 설정</b><label class="ck"><input type="checkbox" id="n1"> 알림 받기</label><label class="ck"><input type="checkbox" id="n2"> 소리·진동</label><label class="ck"><input type="checkbox" id="n3"> 내용 미리보기 (이름+앞부분)</label><label class="ck"><input type="checkbox" id="n4"> 나갔다 오면 자동 가림막</label><p class="s">알림은 앱이 백그라운드이거나 가림막이 켜져 있을 때만 알림이 와요</p>${myRole()==="admin"?`<hr class="dv"><b>⏱ 메시지 사라지는 시간 (방장)</b><div id="tlv" style="font-size:14px;font-weight:600"></div><input type="range" id="tl" min="0" max="${TS.length-1}" step="1" value="${tIdx(Math.round(TTL/1000))}"><div class="tls"><span>${fmtS(TS[0])}</span><span>${fmtS(TS[TS.length-1])}</span></div>`:""}<div class="row"><button id="nx">확인</button></div></div>`;
   document.body.appendChild(d);
   const c=$("#n1");c.checked=ntfOn();$("#n2").checked=lsg("nsnd",false);$("#n3").checked=lsg("nprv",false);$("#n4").checked=lsg("nauto",false);
   c.onchange=async()=>{if(!c.checked){lss("ntf",0);ntfIcon();return}
@@ -335,10 +372,10 @@ function toggleNtf(){const d=document.createElement("div");d.id="md";
     lss("ntf",1);ntfIcon()};
   $("#n2").onchange=e=>lss("nsnd",e.target.checked);$("#n3").onchange=e=>lss("nprv",e.target.checked);
   $("#n4").onchange=e=>lss("nauto",e.target.checked);$("#nx").onclick=()=>d.remove();
-  const tl=$("#tl");if(tl){tl.value=String(Math.round(TTL/1000));tl.onchange=async()=>{
-    const{error}=await sb.rpc("set_room_ttl",{p_code:code,p_secs:+tl.value});
-    if(error){alert("변경 실패: "+error.message);tl.value=String(Math.round(TTL/1000))}
-    else{TTL=+tl.value*1000;toast("이후 메시지부터 "+tl.options[tl.selectedIndex].text+" 뒤에 사라져요")}}}}
+  const tl=$("#tl");if(tl){const sh=()=>{$("#tlv").textContent=fmtS(TS[+tl.value])+" 뒤에 사라져요"};sh();tl.oninput=sh;tl.onchange=async()=>{
+    const secs=TS[+tl.value];const{error}=await sb.rpc("set_room_ttl",{p_code:code,p_secs:secs});
+    if(error){alert("변경 실패: "+error.message);tl.value=String(tIdx(Math.round(TTL/1000)));sh()}
+    else{TTL=secs*1000;toast("이후 메시지부터 "+fmtS(secs)+" 뒤에 사라져요")}}}}
 async function showNtf(t,b){const snd=lsg("nsnd",false),o={body:b,tag:"minute",silent:!snd,renotify:snd,icon:new URL("icon.png",location.href).href,badge:new URL("badge.png",location.href).href};try{const r=await navigator.serviceWorker.getRegistration();if(r){await r.showNotification(t,o);return}}catch(_){}try{new Notification(t,o)}catch(_){}}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 function notifyNew(){const ids=new Set(msgs.map(m=>String(m.id)));if(nseen===null){nseen=ids;return}
@@ -353,7 +390,7 @@ function openPk(el){closePk();const m=findM(el.dataset.mid);if(!m||m.tmp)return;
   const p=document.createElement("div");p.id="pk";
   p.innerHTML=`<div>${RX.map(e=>`<b data-pe="${e}">${e}</b>`).join("")}</div><div class="pa"><a data-pa="re">↩ 답장</a>${imgUrl(m.text)?"":'<a data-pa="cp">📋 복사</a>'}${myRole()!=="user"?'<a data-pa="nt">📢 공지</a>':""}</div>`;
   document.body.appendChild(p);
-  const r=el.getBoundingClientRect(),w=p.offsetWidth,h=p.offsetHeight;
+  const r=(el.querySelector(".b")||el).getBoundingClientRect(),w=p.offsetWidth,h=p.offsetHeight;
   p.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+"px";
   p.style.top=(r.top-h-6<8?r.bottom+6:r.top-h-6)+"px";
   p.onclick=ev=>{const a=ev.target.closest("[data-pe],[data-pa]");if(!a)return;closePk();
@@ -418,10 +455,10 @@ function draw(){
   const s=(mod?"1":"0")+rxSig()+msgs.map(m=>m.id+"|"+m.name+"|"+((members[m.user_id]||{}).role||m.role||"")+"|"+m.text+"|"+((members[m.user_id]||{}).icon||"")+"|"+((members[m.user_id]||{}).photo||"").length+"|"+unread(m)).join("\n");
   if(s!==sig&&!gest){
     sig=s;const end=l.scrollHeight-l.scrollTop-l.clientHeight<80;stick=end;
-    l.innerHTML=msgs.length?msgs.map(m=>{const u=imgUrl(m.text),e=Date.parse(m.expires_at),own=m.user_id===uid&&!m.tmp&&!u;
-      return`<div class="m ${m.user_id===uid?"me":""}" data-mid="${esc(m.id)}"><div class="n">${av(m.user_id)}${esc(m.name)}${tag((members[m.user_id]||{}).role||m.role)}</div>
-  ${u?`<div class="b img"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img src="${esc(u)}" alt="사진" referrerpolicy="no-referrer"></a></div>`:`<div class="b">${bodyHtml(m.text)}</div>`}${m.tmp?"":rxHtml(m.id)}<div class="bar" data-e="${e}"></div>
-  <div class="t">${!m.tmp&&unread(m)?`<b class="un">${unread(m)}</b> `:""}<span data-e="${e}"></span>${own?` <a class="ed" data-edit="${esc(m.id)}">수정</a>`:""}${mod&&!m.tmp?` <a data-id="${esc(m.id)}">삭제</a>`:""}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
+    l.innerHTML=msgs.length?msgs.map((m,i)=>{const pv=msgs[i-1],tsOf=x=>x.created_at?Date.parse(x.created_at):(x.at||0),me=m.user_id===uid,first=!pv||pv.user_id!==m.user_id||Math.abs(tsOf(m)-tsOf(pv))>60000,u=imgUrl(m.text),e=Date.parse(m.expires_at),own=m.user_id===uid&&!m.tmp&&!u;
+      return`<div class="m ${me?"me":""}${first?" f":" g"}" data-mid="${esc(m.id)}">${me?"":`<div class="pa">${first?av(m.user_id,"lg",m.name):""}</div>`}<div class="c">${!me&&first?`<div class="n">${esc(m.name)}${tag((members[m.user_id]||{}).role||m.role)}</div>`:""}
+  <div class="bw"><div class="bb">${u?`<div class="b img"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img src="${esc(u)}" alt="사진" referrerpolicy="no-referrer"></a></div>`:`<div class="b">${bodyHtml(m.text)}</div>`}<div class="bar" data-e="${e}"></div></div>
+  <div class="t">${!m.tmp&&unread(m)?`<b class="un">${unread(m)}</b> `:""}<span data-e="${e}"></span>${own?` <a class="ed" data-edit="${esc(m.id)}">수정</a>`:""}${mod&&!m.tmp?` <a data-id="${esc(m.id)}">삭제</a>`:""}</div></div>${m.tmp?"":rxHtml(m.id)}</div></div>`}).join(""):`<div class="sys">메시지가 없어요.</div>`;
     if(end)l.scrollTop=l.scrollHeight;
   }
   l.querySelectorAll("div.bar[data-e]").forEach(e=>e.style.width=Math.max(0,(e.dataset.e-now)/TTL*100)+"%");
